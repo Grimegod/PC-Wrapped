@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "rootDir": "src",
+    "outDir": "dist/renderer-esm",
+    "types": []
+  },
+  "include": ["src/renderer/renderer.ts"],
+  "exclude": []
+}

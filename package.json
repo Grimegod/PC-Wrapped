@@ -1,0 +1,65 @@
+{
+  "name": "pc-wrapped",
+  "version": "0.1.0",
+  "private": true,
+  "author": "PC Wrapped",
+  "description": "A private, local-only activity recap for Windows",
+  "main": "dist/src/main/main.js",
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build:ts": "pnpm run clean && node scripts/generate-icons.cjs && node scripts/generate-conversions.cjs && tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.cjs",
+    "dev": "pnpm run build:ts && electron .",
+    "start": "electron .",
+    "test": "node scripts/generate-conversions.cjs && tsx --test tests/*.test.ts",
+    "test:preview": "pnpm run build:ts && electron scripts/preview-smoke-app && node scripts/check-preview-smoke.cjs",
+    "build:portable": "pnpm run build:ts && electron-builder --win portable",
+    "build:msix": "pnpm run build:ts && electron-builder --win msix"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.80"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "electron": "^39.2.7",
+    "electron-builder": "27.0.0-alpha.14",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "com.example.pcwrapped",
+    "productName": "PC Wrapped",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "fileOptions": {
+      "files": ["dist/**/*", "assets/**/*", "package.json"],
+      "extraResources": [
+        { "from": "scripts/tracker.ps1", "to": "tracker.ps1" },
+        { "from": "assets/pc-wrapped.ico", "to": "pc-wrapped.ico" },
+        { "from": "assets/pc-wrapped-tray.png", "to": "pc-wrapped-tray.png" }
+      ]
+    },
+    "win": {
+      "icon": "assets/pc-wrapped.ico",
+      "target": ["portable", "msix"],
+      "artifactName": "PC-Wrapped-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PC-Wrapped-${version}-portable-${arch}.${ext}"
+    },
+    "msix": {
+      "applicationId": "PCWrapped",
+      "identityName": "Example.PCWrappedPreview",
+      "publisher": "CN=ms",
+      "publisherDisplayName": "PC Wrapped Preview",
+      "displayName": "PC Wrapped Preview",
+      "backgroundColor": "#fff7ef",
+      "showNameOnTiles": true,
+      "createMsixupload": false,
+      "addAutoLaunchExtension": true
+    },
+    "toolsets": { "winCodeSign": "1.1.0" }
+  }
+}

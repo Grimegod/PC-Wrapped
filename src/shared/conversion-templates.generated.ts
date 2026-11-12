@@ -1,0 +1,31 @@
+// Generated from assets/conversions.json by scripts/generate-conversions.cjs.
+export const CONVERSION_TEMPLATES = [
+  {
+    "id": "short-flight",
+    "label": "short-haul flights",
+    "minutes": 180,
+    "emoji": "✈️",
+    "plural": "flights"
+  },
+  {
+    "id": "film",
+    "label": "feature films",
+    "minutes": 120,
+    "emoji": "🎬",
+    "plural": "films"
+  },
+  {
+    "id": "tv-season",
+    "label": "TV seasons",
+    "minutes": 336,
+    "emoji": "📺",
+    "plural": "seasons"
+  },
+  {
+    "id": "tea-break",
+    "label": "very long tea breaks",
+    "minutes": 15,
+    "emoji": "🫖",
+    "plural": "tea breaks"
+  }
+] as const;
