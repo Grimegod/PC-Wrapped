@@ -1,0 +1,55 @@
+# PC Wrapped — Store readiness, in one screen
+
+Open this file in a browser. It has two buttons and a status line; it needs no server.
+
+The Windows Store path has two steps this machine cannot take on its own: the app package must be
+trusted and installed, and then certified by the Windows App Certification Kit. Both need one
+confirmation from you, because Windows will not show that confirmation to a background process.
+
+---
+
+## 1. Run this once
+
+**Right-click → Run with PowerShell** on
+`<repository-root>\scripts\store\store-setup.ps1`
+
+(That is the same as `powershell -ExecutionPolicy Bypass -File scripts\store\store-setup.ps1` from an
+elevated prompt.) It asks for permission once, then:
+
+- trusts the throwaway test certificate on this machine only,
+- installs the test-signed MSIX,
+- runs the Windows App Certification Kit,
+- writes `audit\wack-report.xml` and `%TEMP%\pcw-store-result.txt`.
+
+## 2. Watch the result
+
+The script prints one line per step and leaves the same lines in `%TEMP%\pcw-store-result.txt`.
+Expected:
+
+```
+cert: trusted machine-wide
+install: OK
+package: PCWrapped.Test_0.1.0.0_x64__<hash>
+status: Ok
+wack: running
+wack exit: 0
+wack: report written
+done
+```
+
+## What is already done
+
+- MSIX builds: `release\PC-Wrapped-0.1.0-x64.msix` (149 MB), validly signed.
+- Store bug fixed: the MSIX no longer declares a hardcoded `SlackStartup` task, so start-at-login
+  stays off by default and is controlled in the app.
+- Windows SDK installed, so `appcert.exe` exists on this machine now.
+- 56 tests, typecheck, lint and format all clean.
+
+## What is left after that
+
+1. Reserve the app in Partner Center and put the real `identityName` / `publisher` in
+   `package.json` → `build.msix`.
+2. Rebuild with `pnpm run build:msix` — the Store signs the package, you do not.
+3. Install that build and use it for a day: start-at-login, history after restart, delete-all,
+   tray and the tracker running from `WindowsApps`.
+4. Capture the listing screenshots: `electron scripts/store/capture-screens.cjs` → `audit\store\`.

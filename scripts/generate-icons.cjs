@@ -8,10 +8,16 @@ const msixDirectory = path.join(root, "build", "appx");
 fs.mkdirSync(iconDirectory, { recursive: true });
 fs.mkdirSync(msixDirectory, { recursive: true });
 
-function drawIcon(size) {
-  const canvas = createCanvas(size, size);
+function drawIcon(size, height = size) {
+  const canvas = createCanvas(size, height);
   const ctx = canvas.getContext("2d");
-  ctx.scale(size / 256, size / 256);
+  // Fill the canvas with the mark's background colour, then draw the mark scaled to fit the
+  // smaller dimension so a wide tile is not stretched.
+  const scale = Math.min(size, height) / 256;
+  ctx.fillStyle = "#3a2a2e";
+  ctx.fillRect(0, 0, size, height);
+  ctx.translate((size - 256 * scale) / 2, (height - 256 * scale) / 2);
+  ctx.scale(scale, scale);
 
   const background = ctx.createLinearGradient(18, 12, 238, 244);
   background.addColorStop(0, "#765047");
@@ -93,3 +99,9 @@ fs.writeFileSync(path.join(iconDirectory, "pc-wrapped.ico"), pngToIcon(sizes));
 fs.writeFileSync(path.join(msixDirectory, "StoreLogo.png"), drawIcon(50));
 fs.writeFileSync(path.join(msixDirectory, "Square44x44Logo.png"), drawIcon(44));
 fs.writeFileSync(path.join(msixDirectory, "Square150x150Logo.png"), drawIcon(150));
+// Wide tile art. Microsoft requires exact pixel sizes for these; a square image fails WACK.
+fs.writeFileSync(path.join(msixDirectory, "Wide310x150Logo.png"), drawIcon(310, 150));
+fs.writeFileSync(path.join(msixDirectory, "Square310x310Logo.png"), drawIcon(310));
+fs.writeFileSync(path.join(msixDirectory, "Square71x71Logo.png"), drawIcon(71));
+fs.writeFileSync(path.join(msixDirectory, "SmallTile.png"), drawIcon(71));
+fs.writeFileSync(path.join(msixDirectory, "LargeTile.png"), drawIcon(310));

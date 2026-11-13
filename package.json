@@ -90,7 +90,7 @@
       "backgroundColor": "#fff7ef",
       "showNameOnTiles": true,
       "createMsixupload": false,
-      "addAutoLaunchExtension": true
+      "addAutoLaunchExtension": false
     },
     "portable": {
       "artifactName": "PC-Wrapped-${version}-portable-${arch}.${ext}"

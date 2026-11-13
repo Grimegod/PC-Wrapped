@@ -12,6 +12,7 @@ import { renderCard, isCardFormat } from "./card";
 import { isTrustedSenderUrl } from "./ipc-guard";
 import { parseTrackerLine, sanitizeTrackerLabel } from "./tracker-line";
 import { isShareableSavedCard, SavedCardLedger, shareCaption, shareCard } from "./share";
+import { applyStartAtLogin, electronStartupDependencies } from "./startup";
 import { LocalStore } from "./store";
 
 let mainWindow: BrowserWindow | undefined;
@@ -265,7 +266,7 @@ async function askStartupPreferenceOnce(): Promise<void> {
   });
   store.settings.startupPrompted = true;
   store.settings.startAtLogin = response.response === 1;
-  app.setLoginItemSettings({ openAtLogin: store.settings.startAtLogin, name: APP_NAME });
+  void applyStartAtLogin(electronStartupDependencies(), store.settings.startAtLogin);
   store.saveSettings();
   broadcastState();
 }
@@ -285,10 +286,12 @@ handle("tracking:set", (event, enabled: boolean) => {
   }
   return currentState();
 });
-handle("settings:startup", (event, enabled: boolean) => {
+handle("settings:startup", async (event, enabled: boolean) => {
   store.settings.startAtLogin = enabled;
   store.settings.startupPrompted = true;
-  app.setLoginItemSettings({ openAtLogin: enabled, name: APP_NAME });
+  // A Store build cannot use a plain login item; the startup helper picks the right mechanism and
+  // the stored setting records what the user asked for.
+  await applyStartAtLogin(electronStartupDependencies(), enabled);
   store.saveSettings();
   broadcastState();
 });
