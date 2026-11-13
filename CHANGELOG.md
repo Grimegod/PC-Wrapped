@@ -2,7 +2,16 @@
 
 All notable changes to PC Wrapped. The project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] — 2026-11-13
+
+First release. Local-only Windows activity recap: per-day app aggregates, recap cards in story
+and square formats, nine sharing targets through the OS, and no network client of any kind.
+
+### Known limitation
+
+- The MSIX (Microsoft Store) build installs but does not launch: electron-builder 27 alpha embeds
+  an asar-integrity hash that Electron 39 rejects. The portable build runs. See the
+  STORE-BLOCKERS notes in `audit/`.
 
 ### Fixed
 
