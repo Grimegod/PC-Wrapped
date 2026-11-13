@@ -17,11 +17,29 @@ test("local store keeps only daily aggregates and supports deletion", () => {
     assert.deepEqual(store.settings.hiddenApps, {});
     store.history["2026-11-12"] = {
       appChanges: 3,
-      apps: { editor: { label: "Text Editor", activeMs: 1_000, longestStreakMs: 800, interruptionsStarted: 0, interruptionsCompleted: 0, returnTimeTotalMs: 0 } }
+      apps: {
+        editor: {
+          label: "Text Editor",
+          activeMs: 1_000,
+          longestStreakMs: 800,
+          interruptionsStarted: 0,
+          interruptionsCompleted: 0,
+          returnTimeTotalMs: 0
+        }
+      }
     };
     store.history["2024-01-01"] = {
       appChanges: 0,
-      apps: { editor: { label: "Text Editor", activeMs: 2, longestStreakMs: 2, interruptionsStarted: 0, interruptionsCompleted: 0, returnTimeTotalMs: 0 } }
+      apps: {
+        editor: {
+          label: "Text Editor",
+          activeMs: 2,
+          longestStreakMs: 2,
+          interruptionsStarted: 0,
+          interruptionsCompleted: 0,
+          returnTimeTotalMs: 0
+        }
+      }
     };
     const historyReference = store.history;
     store.saveHistory(new Date(2026, 10, 12).getTime());

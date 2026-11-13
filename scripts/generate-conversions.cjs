@@ -6,10 +6,18 @@ const source = path.join(root, "assets", "conversions.json");
 const destination = path.join(root, "src", "shared", "conversion-templates.generated.ts");
 const templates = JSON.parse(fs.readFileSync(source, "utf8"));
 
-if (!Array.isArray(templates) || templates.some((item) =>
-  !item || typeof item.id !== "string" || typeof item.label !== "string" ||
-  !Number.isFinite(item.minutes) || typeof item.emoji !== "string" || typeof item.plural !== "string"
-)) {
+if (
+  !Array.isArray(templates) ||
+  templates.some(
+    (item) =>
+      !item ||
+      typeof item.id !== "string" ||
+      typeof item.label !== "string" ||
+      !Number.isFinite(item.minutes) ||
+      typeof item.emoji !== "string" ||
+      typeof item.plural !== "string"
+  )
+) {
   throw new Error("Conversion templates have an invalid shape.");
 }
 

@@ -46,6 +46,29 @@ export interface Archetype {
   line: string;
 }
 
+/** A place to post the saved card, offered only after the user has previewed and saved it. */
+export type ShareTarget =
+  | "whatsapp"
+  | "telegram"
+  | "telegramApp"
+  | "facebook"
+  | "messenger"
+  | "messengerApp"
+  | "instagram"
+  | "snapchat"
+  | "tiktok"
+  | "linkedin"
+  | "x";
+
+export interface ShareOutcome {
+  /** Whether the app opened a share page or an app-specific hand-off. */
+  opened: boolean;
+  /** A plain-language note for the UI; never a network request by the app itself. */
+  message: string;
+  /** The file that was handed to the operating system, when one was. */
+  filePath?: string;
+}
+
 export interface AppBridge {
   getState(): Promise<AppState>;
   setTracking(enabled: boolean): Promise<AppState>;
@@ -56,6 +79,7 @@ export interface AppBridge {
   deleteHistory(): Promise<void>;
   previewCard(format: CardFormat, period: "day" | "week"): Promise<string>;
   exportCard(format: CardFormat, period: "day" | "week"): Promise<string | null>;
+  shareCard(target: ShareTarget, format: CardFormat, period: "day" | "week", savedPath: string | null): Promise<ShareOutcome>;
   onState(callback: (state: AppState) => void): () => void;
 }
 

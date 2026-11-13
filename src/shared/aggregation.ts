@@ -1,4 +1,11 @@
-import { MAX_PENDING_INTERRUPTS, MAX_SAMPLE_GAP_MS, MIN_INTERRUPTION_STREAK_MS, RETURN_STABILITY_MS, RETENTION_DAYS } from "./constants";
+import {
+  MAX_CREDITED_INTERVAL_MS,
+  MAX_PENDING_INTERRUPTS,
+  MAX_SAMPLE_GAP_MS,
+  MIN_INTERRUPTION_STREAK_MS,
+  RETURN_STABILITY_MS,
+  RETENTION_DAYS
+} from "./constants";
 import { dayKeysEndingAt, localDateKey, nextLocalMidnight } from "./dates";
 import type { AppDayAggregate, DayAggregate, History, RecapStats, Snapshot } from "./model";
 
@@ -33,10 +40,13 @@ export class ActivityAggregator {
     }
 
     const previous = this.previous;
-    const delta = snapshot.at - previous.at;
-    if (delta <= 0) return;
+    const rawDelta = snapshot.at - previous.at;
+    if (rawDelta <= 0) return;
+    // Never credit more than one sample interval per sample: a resumed laptop, a clock change or a
+    // stalled adapter must not inflate app time past wall-clock time.
+    const delta = Math.min(rawDelta, MAX_CREDITED_INTERVAL_MS);
 
-    if (delta > MAX_SAMPLE_GAP_MS) {
+    if (rawDelta > MAX_SAMPLE_GAP_MS) {
       this.finishStreak();
       this.pending = [];
       if (!snapshot.idle && !snapshot.excluded) this.startStreak(snapshot.appId);
@@ -47,9 +57,9 @@ export class ActivityAggregator {
     const previousInactive = previous.idle || previous.excluded === true;
     const currentInactive = snapshot.idle || snapshot.excluded === true;
     if (!previousInactive) {
-      this.addActiveInterval(previous.appId, previous.label, previous.at, snapshot.at);
+      this.addActiveInterval(previous.appId, previous.label, previous.at, previous.at + delta);
       this.streakMs += delta;
-      this.recordStreak(previous.appId, previous.label, previous.at, snapshot.at, this.streakMs);
+      this.recordStreak(previous.appId, previous.label, previous.at, previous.at + delta, this.streakMs);
     }
 
     this.advanceInterruptions(previous, delta);
@@ -93,6 +103,7 @@ export class ActivityAggregator {
   }
 
   private addActiveInterval(appId: string, label: string, from: number, to: number): void {
+    // `to` is already clamped to the credited interval by ingest(); this is the day-splitting loop.
     let cursor = from;
     while (cursor < to) {
       const key = localDateKey(cursor);
@@ -115,7 +126,10 @@ export class ActivityAggregator {
 
   private advanceInterruptions(previous: Snapshot, delta: number): void {
     if (previous.idle || previous.excluded) {
-      this.pending.forEach((p) => { p.candidate = false; p.stableMs = 0; });
+      this.pending.forEach((p) => {
+        p.candidate = false;
+        p.stableMs = 0;
+      });
       return;
     }
     const completed = new Set<number>();
@@ -202,7 +216,9 @@ export function removeAppFromHistory(history: History, executableId: string, con
             result.removedTransitions += count;
             delete day.transitions[key];
           }
-        } catch { /* Keep unknown transition keys intact. */ }
+        } catch {
+          /* Keep unknown transition keys intact. */
+        }
       }
       day.appChanges = Object.values(day.transitions).reduce((sum, count) => sum + count, 0);
     } else if (app) {
@@ -214,9 +230,15 @@ export function removeAppFromHistory(history: History, executableId: string, con
   return result;
 }
 
+/** One day can never hold more active app time than a day has: two apps cannot both claim the same minute. */
+export const MAX_DAY_ACTIVE_MS = 24 * 60 * 60 * 1000;
+
 export function recapStats(day: DayAggregate): RecapStats {
   const apps = Object.values(day.apps);
-  const totalActiveMs = apps.reduce((sum, app) => sum + app.activeMs, 0);
+  const totalActiveMs = Math.min(
+    apps.reduce((sum, app) => sum + app.activeMs, 0),
+    MAX_DAY_ACTIVE_MS
+  );
   const top = [...apps].sort((a, b) => b.activeMs - a.activeMs)[0];
   const completedInterruptions = apps.reduce((sum, app) => sum + app.interruptionsCompleted, 0);
   const returnTimeTotalMs = apps.reduce((sum, app) => sum + app.returnTimeTotalMs, 0);

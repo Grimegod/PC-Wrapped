@@ -47,7 +47,22 @@
         <div class="panel-heading"><div><p class="eyebrow">READY FOR YOUR STORY</p><h2>Make a recap card</h2><p class="panel-subtitle">A local PNG, sized for sharing. Preview before saving.</p></div><span class="local-badge">LOCAL PNG</span></div>
         <div class="export-controls"><label>Card shape<select id="card-format"><option value="story">Story · 1080 × 1920</option><option value="square">Square · 1080 × 1080</option></select></label><button id="preview-button" class="secondary-button">Preview card</button><button id="save-button" class="primary-button">Save PNG</button></div>
         <p id="card-empty-message" class="card-empty-message" hidden>Track for a while to create a card</p>
-        <div id="preview-wrap" class="preview-wrap" hidden><img id="card-preview" alt="Preview of your PC Wrapped recap card"><p id="export-message" aria-live="polite"></p></div>
+        <div id="preview-wrap" class="preview-wrap" hidden><img id="card-preview" alt="Preview of your PC Wrapped recap card"><div><p id="export-message" aria-live="polite"></p><p id="share-hint" class="share-hint">Sharing opens the site in your browser. PC Wrapped never uploads your card; you attach the saved PNG there yourself.</p></div></div>
+        <div id="share-row" class="share-row" hidden>
+          <p class="share-label">Share the saved PNG</p>
+          <div class="share-buttons">
+            <button class="share-button" type="button" data-share="whatsapp">WhatsApp</button>
+            <button class="share-button" type="button" data-share="telegram">Telegram</button>
+            <button class="share-button" type="button" data-share="instagram" title="Copies the PNG to the clipboard for Instagram">Instagram</button>
+            <button class="share-button" type="button" data-share="facebook" title="Opens Facebook with the saved PNG to attach">Facebook</button>
+            <button class="share-button" type="button" data-share="messenger">Messenger</button>
+            <button class="share-button" type="button" data-share="linkedin" title="Opens LinkedIn with the saved PNG to attach">LinkedIn</button>
+            <button class="share-button" type="button" data-share="tiktok" title="Copies the PNG to the clipboard for TikTok">TikTok</button>
+            <button class="share-button" type="button" data-share="snapchat" title="Copies the PNG to the clipboard for Snapchat">Snapchat</button>
+            <button class="share-button" type="button" data-share="x" title="Opens X with your caption; attach the saved PNG">X</button>
+          </div>
+          <p id="share-message" class="share-message" role="status" aria-live="polite"></p>
+        </div>
       </section>
 
       <section id="settings-section" class="panel settings-panel" tabindex="-1">

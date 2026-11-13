@@ -40,7 +40,11 @@ function drawIcon(size) {
   circle(ctx, 128, 128, 19);
   ctx.fillStyle = "#fff2e4";
   circle(ctx, 122, 122, 6);
-  for (const point of [[216, 128], [84, 52], [84, 204]]) {
+  for (const point of [
+    [216, 128],
+    [84, 52],
+    [84, 204]
+  ]) {
     ctx.fillStyle = "#fff2e4";
     circle(ctx, point[0], point[1], 13);
     ctx.fillStyle = "#efad94";

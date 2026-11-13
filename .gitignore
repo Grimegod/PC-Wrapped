@@ -3,3 +3,10 @@ dist/
 release/
 /build/
 *.log
+preview/
+# Local trace and scratch scripts used while debugging the build.
+_*.cjs
+_*.png
+*.tsbuildinfo
+audit/*-source/
+audit/*-preview.png

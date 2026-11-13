@@ -11,6 +11,8 @@ public static class ForegroundWindow {
 $ownPid = 0
 [int]::TryParse($env:PC_WRAPPED_PID, [ref]$ownPid) | Out-Null
 while ($true) {
+    # The app is gone (closed, killed from Task Manager): stop polling rather than outlive it.
+    if (-not (Get-Process -Id $ownPid -ErrorAction SilentlyContinue)) { break }
     try {
         $hwnd = [ForegroundWindow]::GetForegroundWindow()
         [uint32]$processId = 0

@@ -1,12 +1,18 @@
-import type { AppBridge, AppState, DayAggregate, RecapStats } from "../shared/model.js";
+import type { AppBridge, AppState, DayAggregate, RecapStats, ShareTarget } from "../shared/model.js";
 import { absurdConversion } from "../shared/conversions.js";
 import { pngDataUrlToBlob } from "./card-preview.js";
 
-declare global { interface Window { pcWrapped: AppBridge } }
+declare global {
+  interface Window {
+    pcWrapped: AppBridge;
+  }
+}
 
 let period: "day" | "week" = "day";
 let latestState: AppState | undefined;
 let previewObjectUrl: string | undefined;
+let savedCardPath: string | null = null;
+let previewedSignature = "";
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing UI element: ${id}`);
@@ -61,12 +67,15 @@ function render(state: AppState): void {
 
 function renderApps(day: DayAggregate): void {
   const host = byId<HTMLDivElement>("apps-list");
-  const apps = Object.entries(day.apps).filter(([, value]) => value.activeMs > 0).sort((a, b) => b[1].activeMs - a[1].activeMs);
+  const apps = Object.entries(day.apps)
+    .filter(([, value]) => value.activeMs > 0)
+    .sort((a, b) => b[1].activeMs - a[1].activeMs);
   host.replaceChildren();
   if (!apps.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.innerHTML = "<span>☁️</span><p>No app time yet.</p><small>Start tracking when you're ready. Tracking is off until you choose.</small>";
+    empty.innerHTML =
+      "<span>☁️</span><p>No app time yet.</p><small>Start tracking when you're ready. Tracking is off until you choose.</small>";
     host.append(empty);
     return;
   }
@@ -90,13 +99,20 @@ function renderApps(day: DayAggregate): void {
     const actions = document.createElement("div");
     actions.className = "app-actions";
     actions.append(
-      makeActionButton(Object.hasOwn(latestState?.excludedApps ?? {}, executableId) ? "Include again" : "Exclude future tracking", async () => {
-        const excluded = !Object.hasOwn(latestState?.excludedApps ?? {}, executableId);
-        const next = await window.pcWrapped.setExcludedApp(executableId, app.label, excluded);
-        latestState = next;
-        render(next);
-        showNotice(excluded ? `${app.label} is excluded from future tracking. Existing history is unchanged.` : `${app.label} will be tracked again.`);
-      }),
+      makeActionButton(
+        Object.hasOwn(latestState?.excludedApps ?? {}, executableId) ? "Include again" : "Exclude future tracking",
+        async () => {
+          const excluded = !Object.hasOwn(latestState?.excludedApps ?? {}, executableId);
+          const next = await window.pcWrapped.setExcludedApp(executableId, app.label, excluded);
+          latestState = next;
+          render(next);
+          showNotice(
+            excluded
+              ? `${app.label} is excluded from future tracking. Existing history is unchanged.`
+              : `${app.label} will be tracked again.`
+          );
+        }
+      ),
       makeActionButton(Object.hasOwn(latestState?.hiddenApps ?? {}, executableId) ? "Show on cards" : "Hide on cards", async () => {
         const hidden = !Object.hasOwn(latestState?.hiddenApps ?? {}, executableId);
         const next = await window.pcWrapped.setHiddenOnCard(executableId, app.label, hidden);
@@ -114,7 +130,8 @@ function renderPreferenceLists(state: AppState): void {
   const excludedHost = byId<HTMLDivElement>("excluded-apps-list");
   excludedHost.replaceChildren();
   const excludedEntries = Object.entries(state.excludedApps);
-  if (!excludedEntries.length) excludedHost.append(makeEmptyPreference("No apps are excluded. Use “Exclude future tracking” on an app in Apps on stage to add one."));
+  if (!excludedEntries.length)
+    excludedHost.append(makeEmptyPreference("No apps are excluded. Use “Exclude future tracking” on an app in Apps on stage to add one."));
   for (const [id, label] of excludedEntries) {
     const row = preferenceRow(id, label);
     row.append(
@@ -123,14 +140,18 @@ function renderPreferenceLists(state: AppState): void {
         render(next);
         showNotice(`${label} will be tracked again. Existing history was not changed.`);
       }),
-      makeActionButton("Also remove past data", async () => {
-        const result = await window.pcWrapped.removeAppPastData(id);
-        if (result.confirmed) {
-          const next = await window.pcWrapped.getState();
-          render(next);
-          showNotice(`Removed ${duration(result.removedActiveMs)} from ${result.removedDays} saved day(s).`);
-        } else showNotice("No past data was removed.");
-      }, true)
+      makeActionButton(
+        "Also remove past data",
+        async () => {
+          const result = await window.pcWrapped.removeAppPastData(id);
+          if (result.confirmed) {
+            const next = await window.pcWrapped.getState();
+            render(next);
+            showNotice(`Removed ${duration(result.removedActiveMs)} from ${result.removedDays} saved day(s).`);
+          } else showNotice("No past data was removed.");
+        },
+        true
+      )
     );
     excludedHost.append(row);
   }
@@ -138,14 +159,17 @@ function renderPreferenceLists(state: AppState): void {
   const hiddenHost = byId<HTMLDivElement>("hidden-apps-list");
   hiddenHost.replaceChildren();
   const hiddenEntries = Object.entries(state.hiddenApps);
-  if (!hiddenEntries.length) hiddenHost.append(makeEmptyPreference("No apps are hidden. Use “Hide on cards” on an app in Apps on stage to add one."));
+  if (!hiddenEntries.length)
+    hiddenHost.append(makeEmptyPreference("No apps are hidden. Use “Hide on cards” on an app in Apps on stage to add one."));
   for (const [id, label] of hiddenEntries) {
     const row = preferenceRow(id, label);
-    row.append(makeActionButton("Show on cards", async () => {
-      const next = await window.pcWrapped.setHiddenOnCard(id, label, false);
-      render(next);
-      showNotice(`${label} will appear on cards again.`);
-    }));
+    row.append(
+      makeActionButton("Show on cards", async () => {
+        const next = await window.pcWrapped.setHiddenOnCard(id, label, false);
+        render(next);
+        showNotice(`${label} will appear on cards again.`);
+      })
+    );
     hiddenHost.append(row);
   }
 }
@@ -176,9 +200,13 @@ function makeActionButton(text: string, action: () => Promise<void>, danger = fa
   button.className = danger ? "mini-button mini-danger" : "mini-button";
   button.type = "button";
   button.textContent = text;
-  button.addEventListener("click", () => void action().catch((error: unknown) => {
-    showNotice(error instanceof Error ? error.message : "The setting could not be saved.");
-  }));
+  button.addEventListener(
+    "click",
+    () =>
+      void action().catch((error: unknown) => {
+        showNotice(error instanceof Error ? error.message : "The setting could not be saved.");
+      })
+  );
   return button;
 }
 
@@ -188,16 +216,19 @@ function showNotice(text: string): void {
   notice.hidden = false;
 }
 
-byId("tracking-button").addEventListener("click", async () => {
-  const state = await window.pcWrapped.setTracking(!latestState?.tracking);
-  render(state);
+byId("tracking-button").addEventListener("click", () => {
+  void (async () => {
+    render(await window.pcWrapped.setTracking(!latestState?.tracking));
+  })();
 });
-byId("startup-toggle").addEventListener("change", async (event) => {
-  await window.pcWrapped.setStartAtLogin((event.currentTarget as HTMLInputElement).checked);
+byId("startup-toggle").addEventListener("change", (event) => {
+  void window.pcWrapped.setStartAtLogin((event.currentTarget as HTMLInputElement).checked);
 });
-byId("delete-button").addEventListener("click", async () => {
-  await window.pcWrapped.deleteHistory();
-  render(await window.pcWrapped.getState());
+byId("delete-button").addEventListener("click", () => {
+  void (async () => {
+    await window.pcWrapped.deleteHistory();
+    render(await window.pcWrapped.getState());
+  })();
 });
 byId("create-card-button").addEventListener("click", () => {
   const section = byId<HTMLElement>("card-section");
@@ -209,18 +240,21 @@ byId("settings-button").addEventListener("click", () => {
   section.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   section.focus({ preventScroll: true });
 });
-document.querySelectorAll<HTMLButtonElement>(".period-button").forEach((button) => button.addEventListener("click", () => {
-  clearCardPreview();
-  period = button.dataset.period === "week" ? "week" : "day";
-  document.querySelectorAll(".period-button").forEach((item) => {
-    item.classList.toggle("active", item === button);
-    item.setAttribute("aria-selected", String(item === button));
-  });
-  byId("interruption-copy").textContent = period === "day"
-    ? "Time from an app visit of at least 10 minutes until you return and stay for 30 seconds. Idle time is excluded."
-    : "For visits of at least 10 minutes, the active time until a 30-second steady return. Idle time is excluded.";
-  if (latestState) render(latestState);
-}));
+document.querySelectorAll<HTMLButtonElement>(".period-button").forEach((button) =>
+  button.addEventListener("click", () => {
+    clearCardPreview();
+    period = button.dataset.period === "week" ? "week" : "day";
+    document.querySelectorAll(".period-button").forEach((item) => {
+      item.classList.toggle("active", item === button);
+      item.setAttribute("aria-selected", String(item === button));
+    });
+    byId("interruption-copy").textContent =
+      period === "day"
+        ? "Time from an app visit of at least 10 minutes until you return and stay for 30 seconds. Idle time is excluded."
+        : "For visits of at least 10 minutes, the active time until a 30-second steady return. Idle time is excluded.";
+    if (latestState) render(latestState);
+  })
+);
 
 async function previewCard(): Promise<void> {
   if (!latestState || currentData(latestState).stats.totalActiveMs <= 0) {
@@ -241,17 +275,55 @@ async function previewCard(): Promise<void> {
   previewObjectUrl = nextUrl;
   byId("preview-wrap").hidden = false;
   byId("export-message").textContent = format === "story" ? "Story card · 1080 × 1920 px" : "Square card · 1080 × 1080 px";
+  previewedSignature = `${format}:${period}`;
+  refreshShareRow();
 }
+
+/**
+ * Sharing is offered only for the card the user previewed and saved: a card has to be seen before
+ * it can leave the app, and the file handed to the share route is the PNG this app just wrote.
+ */
+function refreshShareRow(): void {
+  const currentSignature = `${byId<HTMLSelectElement>("card-format").value}:${period}`;
+  const canShare = Boolean(savedCardPath) && previewedSignature === currentSignature;
+  byId<HTMLDivElement>("share-row").hidden = !canShare;
+  if (!canShare) byId("share-message").textContent = "";
+}
+
+async function shareCard(target: ShareTarget): Promise<void> {
+  if (!savedCardPath) {
+    byId("share-message").textContent = "Save the PNG first, then share the saved card.";
+    return;
+  }
+  const format = byId<HTMLSelectElement>("card-format").value as "story" | "square";
+  const outcome = await window.pcWrapped.shareCard(target, format, period, savedCardPath);
+  byId("share-message").textContent = outcome.message;
+}
+
+document.querySelectorAll<HTMLButtonElement>(".share-button").forEach((button) =>
+  button.addEventListener("click", () => {
+    const target = button.dataset.share as ShareTarget | undefined;
+    if (!target) return;
+    void shareCard(target).catch((error: unknown) => {
+      byId("share-message").textContent = error instanceof Error ? error.message : "The share page could not be opened.";
+    });
+  })
+);
 byId("preview-button").addEventListener("click", () => void previewCard());
-byId("save-button").addEventListener("click", async () => {
+byId("save-button").addEventListener("click", () => {
+  void saveCard();
+});
+async function saveCard(): Promise<void> {
   if (!latestState || currentData(latestState).stats.totalActiveMs <= 0) return;
   const format = byId<HTMLSelectElement>("card-format").value as "story" | "square";
   const saved = await window.pcWrapped.exportCard(format, period);
   if (saved) {
+    savedCardPath = saved;
     byId("export-message").textContent = `Saved locally: ${saved}`;
     await previewCard();
+    refreshShareRow();
   }
-});
+}
 
 window.addEventListener("beforeunload", () => {
   clearCardPreview();
@@ -260,9 +332,13 @@ window.addEventListener("beforeunload", () => {
 function clearCardPreview(): void {
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = undefined;
+  previewedSignature = "";
+  savedCardPath = null;
   byId<HTMLImageElement>("card-preview").removeAttribute("src");
   byId<HTMLDivElement>("preview-wrap").hidden = true;
+  byId<HTMLDivElement>("share-row").hidden = true;
+  byId("share-message").textContent = "";
 }
 
 window.pcWrapped.onState(render);
-window.pcWrapped.getState().then(render);
+void window.pcWrapped.getState().then(render);

@@ -11,8 +11,22 @@ const { chooseArchetype } = require(path.join(root, "dist", "src", "shared", "ar
 const populatedDay = {
   appChanges: 3,
   apps: {
-    "synthetic-editor": { label: "Synthetic Editor", activeMs: 1_800_000, longestStreakMs: 840_000, interruptionsStarted: 1, interruptionsCompleted: 1, returnTimeTotalMs: 45_000 },
-    "synthetic-browser": { label: "Synthetic Browser", activeMs: 720_000, longestStreakMs: 300_000, interruptionsStarted: 0, interruptionsCompleted: 0, returnTimeTotalMs: 0 }
+    "synthetic-editor": {
+      label: "Synthetic Editor",
+      activeMs: 1_800_000,
+      longestStreakMs: 840_000,
+      interruptionsStarted: 1,
+      interruptionsCompleted: 1,
+      returnTimeTotalMs: 45_000
+    },
+    "synthetic-browser": {
+      label: "Synthetic Browser",
+      activeMs: 720_000,
+      longestStreakMs: 300_000,
+      interruptionsStarted: 0,
+      interruptionsCompleted: 0,
+      returnTimeTotalMs: 0
+    }
   },
   transitions: {}
 };
@@ -124,7 +138,11 @@ app.whenReady().then(async () => {
     app.quit();
   } catch (error) {
     console.error("[main] Preview smoke test failed:", error);
-    fs.writeFileSync(resultPath, JSON.stringify({ ok: false, error: error instanceof Error ? error.stack : String(error), rendererErrors }), "utf8");
+    fs.writeFileSync(
+      resultPath,
+      JSON.stringify({ ok: false, error: error instanceof Error ? error.stack : String(error), rendererErrors }),
+      "utf8"
+    );
     app.exit(1);
   }
 });

@@ -1,6 +1,6 @@
 # PC Wrapped
 
-*Your computer’s year in review. Funny, private, yours.*
+_Your computer’s year in review. Funny, private, yours._
 
 Ever wonder where your day actually went? PC Wrapped shows how your time splits across apps, how long you can really stay focused, and how long it takes you to get back after you get pulled away. Then it turns those numbers into a card you can share, or keep to yourself.
 
@@ -9,13 +9,15 @@ Ever wonder where your day actually went? PC Wrapped shows how your time splits 
 - Tracks which app is in the foreground and when you are idle.
 - Finds your longest focus streak and your return time after a long app visit.
 - Gives you an archetype and absurd comparisons for your screen time.
-- Exports a story-size or square card as a PNG.
+- Exports a story-size or square card as a PNG, with colour emoji and a short top-three app cast.
+- Offers a share hand-off for WhatsApp, Telegram, Instagram, Facebook, Messenger, LinkedIn, TikTok, Snapchat and X after you preview and save the card. Instagram, TikTok and Snapchat get the PNG on your clipboard, since they have no share page that accepts an image.
 - Lets you exclude apps from future tracking or hide app names on cards.
 
 ## What it does not do
 
 - It does not read window titles, take screenshots, or monitor keystrokes.
 - It does not need an account or send activity to a server.
+- Sharing opens the site in your browser, or copies the PNG for Instagram. You attach the saved image there yourself, so nothing leaves the app on its own.
 - It does not judge whether your time was productive.
 
 ## Your data stays on your computer

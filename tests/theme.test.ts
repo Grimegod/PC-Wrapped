@@ -19,8 +19,9 @@ function colorFrom(rule: string, property: string): string {
 }
 
 function luminance(hex: string): number {
-  const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255)
-    .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  const channels = [1, 3, 5]
+    .map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255)
+    .map((value) => (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 

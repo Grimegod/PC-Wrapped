@@ -80,7 +80,11 @@ export class LocalStore {
     try {
       fs.renameSync(temp, filePath);
     } catch (error) {
-      try { fs.unlinkSync(temp); } catch { }
+      try {
+        fs.unlinkSync(temp);
+      } catch {
+        // The temporary file may already be gone; the original error is the one worth reporting.
+      }
       throw error;
     }
   }
@@ -92,7 +96,11 @@ function normalizePreferenceMap(value: unknown): AppPreferenceMap {
   for (const [rawId, rawLabel] of Object.entries(value as Record<string, unknown>)) {
     const id = rawId.toLowerCase();
     if (!/^[a-z0-9._-]{1,64}$/.test(id) || typeof rawLabel !== "string") continue;
-    const label = rawLabel.replace(/[\r\n\u0000-\u001f]/g, " ").trim().slice(0, 80);
+    const label = rawLabel
+      // eslint-disable-next-line no-control-regex -- stripping control characters is the point.
+      .replace(/[\r\n\u0000-\u001f]/g, " ")
+      .trim()
+      .slice(0, 80);
     Object.defineProperty(result, id, { value: label || id, enumerable: true, configurable: true, writable: true });
   }
   return result;
@@ -111,13 +119,20 @@ function isHistory(value: unknown): value is History {
         try {
           const pair = JSON.parse(key) as unknown;
           if (!Array.isArray(pair) || pair.length !== 2 || pair.some((id) => typeof id !== "string")) return false;
-        } catch { return false; }
+        } catch {
+          return false;
+        }
       }
     }
     return Object.values(candidate.apps as Record<string, unknown>).every((app) => {
       if (!app || typeof app !== "object") return false;
       const a = app as Record<string, unknown>;
-      return typeof a.label === "string" && ["activeMs", "longestStreakMs", "interruptionsStarted", "interruptionsCompleted", "returnTimeTotalMs"].every((field) => Number.isFinite(a[field]));
+      return (
+        typeof a.label === "string" &&
+        ["activeMs", "longestStreakMs", "interruptionsStarted", "interruptionsCompleted", "returnTimeTotalMs"].every((field) =>
+          Number.isFinite(a[field])
+        )
+      );
     });
   });
 }

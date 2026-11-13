@@ -14,11 +14,11 @@ Use Electron with TypeScript for the first desktop shell if the goal remains a q
 
 ## Three-day prototype target
 
-| Day | Deliverable | Exit check |
-| --- | --- | --- |
-| 1 | Tray shell, foreground-app adapter, idle detector, start/pause state, local aggregate store | Synthetic activity timeline has exact expected durations; idle periods and excluded apps add zero time |
-| 2 | Daily/weekly recap and local PNG card export | Story and square exports have correct dimensions; preview matches saved image; no network requests |
-| 3 | Installer/portable packaging, privacy and deletion controls, manual QA | Clean install and uninstall in a disposable Windows profile; pause, restart persistence, delete history, and offline use verified |
+| Day | Deliverable                                                                                 | Exit check                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Tray shell, foreground-app adapter, idle detector, start/pause state, local aggregate store | Synthetic activity timeline has exact expected durations; idle periods and excluded apps add zero time                            |
+| 2   | Daily/weekly recap and local PNG card export                                                | Story and square exports have correct dimensions; preview matches saved image; no network requests                                |
+| 3   | Installer/portable packaging, privacy and deletion controls, manual QA                      | Clean install and uninstall in a disposable Windows profile; pause, restart persistence, delete history, and offline use verified |
 
 <div align="justify">
 

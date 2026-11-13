@@ -6,27 +6,38 @@
   "description": "A private, local-only activity recap for Windows",
   "main": "dist/src/main/main.js",
   "scripts": {
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build:ts": "pnpm run clean && node scripts/generate-icons.cjs && node scripts/generate-conversions.cjs && tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.cjs",
-    "dev": "pnpm run build:ts && electron .",
+    "clean": "node scripts/clean.cjs",
+    "check:deps": "node scripts/check-deps.cjs",
+    "check:identity": "node scripts/check-identity.cjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "lint": "eslint src tests scripts --max-warnings 0",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.cjs\" \"*.json\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.cjs\" \"*.json\" \"*.md\"",
+    "build:ts": "node scripts/build-ts.cjs",
+    "dev": "node scripts/build-ts.cjs && electron .",
     "start": "electron .",
     "test": "node scripts/generate-conversions.cjs && tsx --test tests/*.test.ts",
-    "test:preview": "pnpm run build:ts && electron scripts/preview-smoke-app && node scripts/check-preview-smoke.cjs",
-    "build:portable": "pnpm run build:ts && electron-builder --win portable",
-    "build:msix": "pnpm run build:ts && electron-builder --win msix"
+    "test:preview": "node scripts/build-ts.cjs && electron scripts/preview-smoke-app && node scripts/check-preview-smoke.cjs",
+    "build:portable": "node scripts/build-ts.cjs && electron-builder --win portable",
+    "build:msix": "node scripts/build-ts.cjs && node scripts/check-identity.cjs && electron-builder --win msix",
+    "verify": "node scripts/check-deps.cjs && node scripts/check-identity.cjs && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json --noEmit && node scripts/generate-conversions.cjs && tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.80"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
     "@types/node": "^24.10.0",
     "electron": "^39.2.7",
     "electron-builder": "27.0.0-alpha.14",
+    "eslint": "^9.15.0",
+    "prettier": "^3.4.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.16.0"
   },
   "build": {
-    "appId": "com.example.pcwrapped",
+    "appId": "com.grimegod.pcwrapped",
     "productName": "PC Wrapped",
     "asar": true,
     "directories": {
@@ -34,20 +45,41 @@
       "buildResources": "build"
     },
     "fileOptions": {
-      "files": ["dist/**/*", "assets/**/*", "package.json"],
+      "files": [
+        "dist/**/*",
+        "assets/**/*",
+        "package.json"
+      ],
       "extraResources": [
-        { "from": "scripts/tracker.ps1", "to": "tracker.ps1" },
-        { "from": "assets/pc-wrapped.ico", "to": "pc-wrapped.ico" },
-        { "from": "assets/pc-wrapped-tray.png", "to": "pc-wrapped-tray.png" }
+        {
+          "from": "scripts/tracker.ps1",
+          "to": "tracker.ps1"
+        },
+        {
+          "from": "assets/pc-wrapped.ico",
+          "to": "pc-wrapped.ico"
+        },
+        {
+          "from": "assets/pc-wrapped-tray.png",
+          "to": "pc-wrapped-tray.png"
+        }
       ]
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
     },
     "win": {
       "icon": "assets/pc-wrapped.ico",
-      "target": ["portable", "msix"],
+      "target": [
+        "portable",
+        "msix"
+      ],
       "artifactName": "PC-Wrapped-${version}-${arch}.${ext}"
-    },
-    "portable": {
-      "artifactName": "PC-Wrapped-${version}-portable-${arch}.${ext}"
     },
     "msix": {
       "applicationId": "PCWrapped",
@@ -60,6 +92,15 @@
       "createMsixupload": false,
       "addAutoLaunchExtension": true
     },
-    "toolsets": { "winCodeSign": "1.1.0" }
+    "portable": {
+      "artifactName": "PC-Wrapped-${version}-portable-${arch}.${ext}"
+    },
+    "toolsets": {
+      "winCodeSign": "1.1.0"
+    }
+  },
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=20"
   }
 }
