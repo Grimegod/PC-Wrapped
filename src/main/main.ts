@@ -84,7 +84,9 @@ function startTracker(): void {
   if (tracker) return;
   const script = app.isPackaged ? path.join(process.resourcesPath, "tracker.ps1") : path.join(app.getAppPath(), "scripts", "tracker.ps1");
   if (!fs.existsSync(script)) throw new Error(`The Windows activity adapter is missing: ${script}`);
-  const child = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script], {
+  // No -ExecutionPolicy Bypass: the script is ours, and that flag is the exact pattern every
+  // antivirus (Bitdefender included) flags as "malicious command line". It buys nothing here.
+  const child = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", script], {
     windowsHide: true,
     env: { ...process.env, PC_WRAPPED_PID: String(process.pid) },
     stdio: ["ignore", "pipe", "pipe"]
