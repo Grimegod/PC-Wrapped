@@ -28,7 +28,7 @@ Ever wonder where your day actually went? PC Wrapped shows how your time splits 
 - Use **Delete all history** to remove saved activity.
 - Tracking starts only when you press **Start tracking**. Start-at-login is off by default.
 
-**Open source.** Check the code in the [PC Wrapped repository](https://github.com/Grimegod/PC-Wrapped). The repository is private until launch.
+**Open source.** The code lives in the [PC Wrapped repository](https://github.com/Grimegod/PC-Wrapped), and the repository is public. Issues and pull requests are welcome.
 
 **Windows first.** macOS and Linux may come later.
 
