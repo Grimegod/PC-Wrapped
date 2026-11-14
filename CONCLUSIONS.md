@@ -2,7 +2,7 @@
 
 Audit date: 13 November 2026 · Version: **1.0.0** · Repository: `https://github.com/Grimegod/PC-Wrapped`
 
-**Status update — 14 November 2026:** Partner Center now reports PC Wrapped as **In the Microsoft Store**. The pre-submission findings below record the state before publication and are historical; they do not describe the current Store package.
+**Status update — 14 November 2026:** Partner Center now reports PC Wrapped as **In the Microsoft Store**. The app was installed from the Microsoft Store and confirmed working on 14 November 2026. The pre-submission findings below record the state before publication and are historical; they do not describe the current Store package.
 
 ## What this project is now
 
@@ -15,7 +15,7 @@ through the OS. No account, no network client, no telemetry — the renderer's C
 
 | Claim                         | Evidence                                                                               |
 | ----------------------------- | -------------------------------------------------------------------------------------- |
-| The app runs                  | Portable build launched: window "PC Wrapped", 4 processes (`audit/portable-test.log`)  |
+| The app runs                  | Portable build launched; app installed from the Microsoft Store and confirmed working by the owner on 14 November 2026 |
 | Tests                         | 58 passing (`tsx --test tests/*.test.ts`)                                              |
 | Types and lint                | `tsc --noEmit` clean, ESLint `--max-warnings 0` clean, Prettier clean                  |
 | Windows App Certification Kit | **PASS on an earlier package**; rerun against the current MSIX before submission       |
@@ -80,3 +80,4 @@ changes were made after 13 November; use the current Store listing and release r
 Read these as dated engineering records: `audit/STORE-BLOCKERS.md`, `audit/WACK-RESULT.md`,
 `audit/MSIX-INTEGRITY.md`, and `audit/FIXES-APPLIED.md`. Some findings were superseded by the Store
 publication on 14 November 2026.
+
