@@ -7,11 +7,9 @@ All notable changes to PC Wrapped. The project follows [Semantic Versioning](htt
 First release. Local-only Windows activity recap: per-day app aggregates, recap cards in story
 and square formats, nine sharing targets through the OS, and no network client of any kind.
 
-### Known limitation
+### Store verification
 
-- The MSIX (Microsoft Store) build installs but does not launch: electron-builder 27 alpha embeds
-  an asar-integrity hash that Electron 39 rejects. The portable build runs. See the
-  STORE-BLOCKERS notes in `audit/`.
+- The published Microsoft Store version was installed and launched successfully from the Store.
 
 ### Fixed
 
@@ -50,3 +48,4 @@ and square formats, nine sharing targets through the OS, and no network client o
 
 First working build: local-only tracking, daily and weekly recap cards in story and square
 formats, and OS hand-off sharing to nine networks.
+
