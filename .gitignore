@@ -1,6 +1,10 @@
 node_modules/
 dist/
 release/
+/release-msix-test/
+/release-store-candidate/
+/audit/store/
+/audit/wack-store-candidate.xml
 /build/
 *.log
 preview/

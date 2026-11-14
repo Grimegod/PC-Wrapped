@@ -1,73 +1,54 @@
-# MSIX integrity failure — the exact cause
+# MSIX integrity failure — verified status
 
 Date: 13 November 2026
 
-## The cause, in one line
+## What the failure proves
 
-`electron-builder 27.0.0-alpha.14` hashes the asar **header without its trailing NUL padding**,
-while Electron 39 hashes the header **as stored, padding included**. The two never agree, so the
-packaged app aborts at startup.
+The earlier launch logs report an Electron ASAR-integrity mismatch:
 
-## The evidence
-
-The exe embeds one expected hash (`release/win-unpacked/PC Wrapped.exe`):
-
-```
-[{"file":"resources\\app.asar","alg":"SHA256","value":"7c15b688…c89d8"}]
+```text
+Integrity check failed for asar archive (23ab3020… vs 7c15b688…)
 ```
 
-Hashing the real `app.asar` different ways:
+This proves that the digest embedded in the executable did not match the digest Electron
+calculated from the packaged `app.asar`. It does **not** prove that Electron hashes the ASAR
+header's Pickle padding. The previous report's padding explanation was incorrect: electron-builder
+hashes the parsed header string, and Electron's runtime validation receives the parsed header string
+as bytes. Those are the same logical bytes, so adding NUL padding to electron-builder's digest would
+be the wrong fix.
 
-| What is hashed | Result |
-| --- | --- |
-| the whole file | `c73b9fee…` |
-| the JSON header text without its 7 NUL bytes | **`7c15b688…` — exactly what the exe expects** |
-| the header exactly as stored (10 536 bytes, padding included) | `edd566ba…` |
+The existing evidence does not isolate which exact packaging step changed the embedded digest from
+the value calculated for the ASAR. The target or a later executable-resource rewrite remains a
+hypothesis until the executable resource is captured at each build stage.
 
-So electron-builder wrote the hash of a header it had already trimmed, and Electron reads the
-header with the padding still on. `app-builder-lib/dist/asar/integrity.js` shows why:
+## Workaround implemented and tested
 
-```js
-async function hashHeader(file) {
-  const { header } = await readAsarHeader(file);
-  hash.update(header);   // <- the parsed string, padding already gone
-```
+The MSIX build now disables ASAR and `onlyLoadAppFromAsar` for that target only. The general build
+configuration still uses ASAR, so the portable build retains its existing layout. A post-build check
+requires `resources/app/package.json` and the declared main entry to exist, and fails if
+`resources/app.asar` reappears.
 
-Electron's `asar_util.cc` hashes the raw header block instead.
+Local test results:
 
-The two error hashes in the crash message confirm the same thing from the other side:
+- electron-builder 27.0.0-alpha.14 produced `release-msix-test/PC-Wrapped-1.0.0-x64.msix` (156,749,136 bytes).
+- The package contains `app/resources/app/...` and no `resources/app.asar`.
+- The unpacked executable opened the `PC Wrapped` window using isolated data under `%TEMP%`; its
+  captured stderr was empty and it did not report an ASAR-integrity failure.
+- 58 application tests pass, including the MSIX layout regression test. Both TypeScript projects
+  type-check.
 
-- `23ab3020…` is embedded in the **installed** exe,
-- `7c15b688…` is embedded in the **locally built** exe,
+This verifies the workaround's build layout and Electron startup from the unpacked output. The test
+MSIX is unsigned, so it has **not** been installed or launched through Windows package activation;
+this run also does not certify the package or verify the packaged tracker/start-at-login path.
 
-so the MSIX target rewrote the exe (and re-hashed the asar) after the first hash was recorded, and
-neither value matches what Electron computes at runtime.
+## Trade-offs and remaining work
 
-## Why pinning to 26.x is not the way out
+Without ASAR, application files are unpacked under `resources/app`; ASAR does not encrypt source
+files, but the archive boundary is lost. `onlyLoadAppFromAsar` must be disabled for this target.
+Embedded ASAR integrity cannot protect an archive that is not present. The portable target remains
+unchanged.
 
-electron-builder 26.18.1 rejects this project's config outright:
-
-```
-configuration has an unknown property 'fileOptions'
-configuration has an unknown property 'msix'
-```
-
-`fileOptions` and the `msix` target only exist in the 27 alpha. Downgrading means rewriting the
-build config for a tool that cannot produce a Store package anyway.
-
-## What actually fixes it
-
-The app itself is fine — the portable build runs from the same code and the same fuses (verified:
-window titled "PC Wrapped", 4 processes). Only the packaged-Msix path is broken.
-
-Options, cheapest first:
-
-1. **Wait for a fixed electron-builder 27 beta** and bump the pin. One line in `package.json`.
-2. **Turn the integrity check off for the MSIX build only**
-   (`electronFuses.enableEmbeddedAsarIntegrityValidation: false`). The app then starts, at the cost
-   of one tamper-detection layer. A Store submission does not require this fuse, and the Store
-   re-signs the package anyway.
-3. **Patch the resource after packing** — rewrite the embedded hash to `edd566ba…` so it matches
-   what Electron computes. Fragile: it depends on Electron internals staying the same.
-
-Recommendation: option 2 for a testable Store build now, option 1 as the real fix.
+Before a Store submission, reserve the real Partner Center identity, rebuild with it, install and
+exercise the signed package, and rerun certification against that exact package. Separately,
+capture the executable's integrity resource before and after the MSIX target to identify the
+original mismatch and restore ASAR for MSIX if the build toolchain fixes it.

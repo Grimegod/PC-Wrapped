@@ -1,14 +1,14 @@
 # Store setup, step by step (no elevation needed for the checks)
 
-If `store-setup.ps1` did not finish, this is the manual path. Run each line in PowerShell and read
-what it prints. Lines marked **[admin]** need an elevated PowerShell window
+If `store-setup.ps1` did not finish, this is the manual path. Run each line from the repository
+folder in PowerShell and read what it prints. Lines marked **[admin]** need an elevated PowerShell window
 (_Start → "PowerShell" → right-click → Run as administrator_).
 
 ## A. What should already be true
 
 ```powershell
 # 1. The package exists and its signature is valid.
-Get-AuthenticodeSignature '<repository-root>\release\PC-Wrapped-0.1.0-x64.msix' | Select-Object Status
+Get-AuthenticodeSignature '.\release\PC-Wrapped-0.1.0-x64.msix' | Select-Object Status
 
 # 2. The throwaway test certificate is trusted for your user.
 Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Subject -eq 'CN=PC Wrapped Test' } | Select-Object Subject, NotAfter
@@ -36,7 +36,7 @@ Check: `Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -eq 'C
 This step does **not** need admin.
 
 ```powershell
-Add-AppxPackage -Path '<repository-root>\release\PC-Wrapped-0.1.0-x64.msix'
+Add-AppxPackage -Path '.\release\PC-Wrapped-0.1.0-x64.msix'
 Get-AppxPackage -Name 'PCWrapped.Test' | Select-Object PackageFullName, Status
 ```
 
@@ -51,7 +51,6 @@ Start it once from the Start menu, then close it from the tray.
 ## D. [admin] Run the Windows App Certification Kit
 
 ```powershell
-cd '<repository-root>'
 powershell -ExecutionPolicy Bypass -File scripts\store\run-wack.ps1
 ```
 
@@ -60,7 +59,7 @@ That script elevates itself and prints a PASS/FAIL summary per check. Or run `ap
 ```powershell
 & 'C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe' test `
   -package (Get-AppxPackage -Name 'PCWrapped.Test').PackageFullName `
-  -reportoutputpath '<repository-root>\audit\wack-report.xml' `
+  -reportoutputpath '.\audit\wack-report.xml' `
   -appusage none
 ```
 

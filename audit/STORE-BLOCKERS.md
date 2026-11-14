@@ -1,67 +1,55 @@
-# Store blockers — honest status, 13 November 2026
+# Microsoft Store blockers — pre-publication audit, 13 November 2026
 
-## The one thing that must be fixed before anything else
+> **Superseded status (14 November 2026):** Partner Center now reports PC Wrapped as **In the
+> Microsoft Store**. The findings below describe the state recorded before publication and are kept
+> as historical engineering notes, not as a current release checklist.
 
-**The MSIX build does not run.** It installs (`Status = Ok`), but every launch aborts with:
+## MSIX startup
 
-```
-FATAL:electron\shell\common\asar\asar_util.cc:143] Integrity check failed for asar archive
-```
+The previous MSIX launch logs show Electron aborting because the digest embedded in the executable
+does not match the packaged `app.asar` (`23ab3020…` versus `7c15b688…`). The earlier audit's claim
+that this was caused by Electron hashing ASAR's NUL padding was incorrect; electron-builder and
+Electron both hash the parsed header string. The exact build stage that changes the embedded digest
+has not yet been isolated.
 
-That is not a packaging nicety — a Store listing whose app crashes on launch fails certification.
+A local workaround is now in the `build:msix` command: build this target without ASAR and disable
+`onlyLoadAppFromAsar` for that target. The portable target still uses ASAR. The generated app layout
+is checked after packaging.
 
-### What the cause is, exactly
+| Check                      | Result                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| MSIX test package built    | Pass; `release-msix-test/PC-Wrapped-1.0.0-x64.msix`, 156,749,136 bytes                       |
+| Package layout             | Pass; files are under `app/resources/app`; no `app.asar` is present                          |
+| Unpacked app startup       | Pass; the `PC Wrapped` window opened with isolated `%TEMP%` data and no ASAR-integrity error |
+| Installed MSIX activation  | Not tested; this test package is unsigned                                                    |
+| WACK on this exact package | Not tested                                                                                   |
 
-`electron-builder 27.0.0-alpha.14` hashes the asar header **with its trailing NUL padding removed**;
-Electron 39 hashes the header **as stored**. Verified against the real files:
+This is a verified local startup workaround, not Store certification or a Store-ready release. It
+unpacks the app's files and disables the `onlyLoadAppFromAsar` boundary for MSIX. ASAR does not
+encrypt source files, but this package no longer has an ASAR integrity check. The portable package
+is unaffected.
 
-| Hashed                                      | Result                                            |
-| ------------------------------------------- | ------------------------------------------------- |
-| whole `app.asar`                            | `c73b9fee…`                                       |
-| header JSON text without the 7 padding NULs | `7c15b688…` — the value electron-builder embedded |
-| header as stored on disk                    | `edd566ba…` — what Electron computes              |
+## Other readiness items
 
-### What was tried, and what it proved
+| Item                          | Status                                                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Windows App Certification Kit | An earlier report records 24/24 checks passing for its then-current package; rerun WACK on the final MSIX        |
+| Tile art                      | Previously checked at required sizes                                                                             |
+| Startup integration           | The hardcoded startup extension was removed; verify opt-in behavior from the installed package                   |
+| Tracker policy                | `-ExecutionPolicy Bypass` was removed from the tracker command                                                   |
+| Automated checks              | 58 tests pass; both TypeScript projects type-check                                                               |
+| Privacy                       | Local-only event model; no window titles, screenshots or keyboard monitoring; renderer denies remote connections |
+| Store publication             | Partner Center now reports **In the Microsoft Store**; this audit predates that status                           |
 
-| Attempt                                                           | Result                                                                 |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Rebuild and reinstall the MSIX                                    | same failure, asar byte-identical                                      |
-| `enableEmbeddedAsarIntegrityValidation: false` in `electronFuses` | **no effect** — the resource is still written and still checked        |
-| Pin `electron-builder` to 26.18.1 (latest stable)                 | impossible: it rejects this config (`fileOptions`, `msix` are 27-only) |
-| Strip the integrity resource from the exe by hand                 | works on the exe, but the MSIX target re-adds it                       |
+## What remains before submission
 
-So the only remaining clean fix is upstream. Two workable paths:
+1. Reserve the app in Partner Center and replace the placeholder `identityName` and `publisher` in
+   `package.json`; the identity check intentionally refuses placeholder values.
+2. Build with that identity, sign/install the resulting package and test it from `WindowsApps`.
+   Verify tracking opt-in, start-at-login, data retention/deletion, tray behavior and the tracker.
+3. Run WACK on that exact package and resolve any findings.
+4. Prepare the Store listing, privacy policy URL, age rating, screenshots and support contact.
 
-1. **Wait for a fixed electron-builder 27 beta**, then bump the pin. One line.
-2. **Build the MSIX without asar** (`"asar": false` for that target). The app then has no asar to
-   verify, so the check cannot fail. Cost: slower startup, files visible on disk, and the
-   `onlyLoadAppFromAsar` fuse becomes meaningless. Acceptable for a test package, worth revisiting
-   before shipping.
-
-## Everything else, checked
-
-| Item                                          | Status                                                             |
-| --------------------------------------------- | ------------------------------------------------------------------ |
-| Windows App Certification Kit                 | **PASS** — 24/24 required checks (`audit/wack-report.xml`)         |
-| Wide tile art                                 | fixed — all eight assets have exact required sizes                 |
-| Hardcoded `SlackStartup` task in the manifest | removed; startup now handled in `src/main/startup.ts`              |
-| `-ExecutionPolicy Bypass` on the tracker      | removed — this was the Bitdefender alert                           |
-| Portable build                                | **runs** — verified window titled "PC Wrapped"                     |
-| Tests / types / lint                          | 56 tests pass, typecheck clean, ESLint `--max-warnings 0`          |
-| Privacy story                                 | no network client, CSP `connect-src 'none'`, daily aggregates only |
-| Repository                                    | public, `https://github.com/Grimegod/PC-Wrapped`                   |
-
-## What is genuinely left before a Store submission
-
-1. Fix the MSIX launch failure (above) — **hard blocker**.
-2. Reserve the app in Partner Center; put the real `identityName` / `publisher` in
-   `package.json` → `build.msix`. `pnpm run check:identity` refuses until then, on purpose.
-3. Install the real MSIX and use it for a day: start-at-login, history after restart,
-   delete-all-history, tray and tracker running from `WindowsApps`.
-4. Store listing: screenshots, description, age rating, privacy policy URL, support contact.
-
-## Straight answer to "can we go further?"
-
-Not to the Store today. The code and the privacy story are in good shape and WACK passes, but an
-app that crashes on launch is not submittable, and I will not dress that up. Once the MSIX launches
-(option 1 or 2 above), the remaining work is paperwork and one day of using it installed.
+Separately, capture the executable's integrity resource before and after each MSIX packaging stage.
+If the builder mismatch is corrected upstream, restore ASAR for MSIX and re-enable
+`onlyLoadAppFromAsar` rather than retaining the workaround indefinitely.

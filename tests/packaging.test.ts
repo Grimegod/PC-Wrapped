@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
@@ -13,6 +15,38 @@ test("Windows package includes the custom window and tray icons as runtime resou
   assert.ok(packageJson.build.fileOptions.files.includes("assets/**/*"));
   assert.equal(packageJson.build.win.icon, "assets/pc-wrapped.ico");
   assert.equal(packageJson.build.directories.buildResources, "build");
+});
+
+test("MSIX build uses the no-ASAR workaround without changing the portable build", () => {
+  const msixScript = packageJson.scripts["build:msix"] as string;
+  assert.equal(packageJson.build.asar, true);
+  assert.match(msixScript, /--win msix/);
+  assert.match(msixScript, /--config\.asar=false/);
+  assert.match(msixScript, /--config\.electronFuses\.onlyLoadAppFromAsar=false/);
+  assert.match(msixScript, /check-msix-layout\.cjs/);
+});
+
+test("MSIX layout check accepts the unpacked app and rejects a stray ASAR archive", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "pcw-msix-layout-"));
+  const resources = path.join(root, "resources");
+  const appDir = path.join(resources, "app");
+  const mainFile = path.join(appDir, "dist", "main.js");
+  try {
+    mkdirSync(path.dirname(mainFile), { recursive: true });
+    writeFileSync(path.join(appDir, "package.json"), JSON.stringify({ main: "dist/main.js" }));
+    writeFileSync(mainFile, "// synthetic smoke fixture\n");
+    const checkScript = path.join(projectRoot, "scripts", "check-msix-layout.cjs");
+    const validResult = spawnSync(process.execPath, [checkScript, root], { encoding: "utf8" });
+    assert.equal(validResult.status, 0, validResult.stderr);
+    assert.match(validResult.stdout, /MSIX no-ASAR layout passed/);
+
+    writeFileSync(path.join(resources, "app.asar"), "unexpected");
+    const invalidResult = spawnSync(process.execPath, [checkScript, root], { encoding: "utf8" });
+    assert.equal(invalidResult.status, 1);
+    assert.match(invalidResult.stderr, /MSIX workaround expects resources\/app\.asar to be absent/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("generated app and tray icon PNGs have the expected dimensions", () => {

@@ -34,10 +34,9 @@ rest by itself once it is elevated.
 ## Do this, once
 
 Open **PowerShell as administrator** (Start → type `PowerShell` → right-click →
-_Run as administrator_), then:
+_Run as administrator_), change to the repository folder, then:
 
 ```powershell
-cd '<repository-root>'
 powershell -ExecutionPolicy Bypass -File scripts\store\run-wack.ps1
 ```
 

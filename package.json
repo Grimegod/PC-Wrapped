@@ -19,7 +19,7 @@
     "test": "node scripts/generate-conversions.cjs && tsx --test tests/*.test.ts",
     "test:preview": "node scripts/build-ts.cjs && electron scripts/preview-smoke-app && node scripts/check-preview-smoke.cjs",
     "build:portable": "node scripts/build-ts.cjs && electron-builder --win portable",
-    "build:msix": "node scripts/build-ts.cjs && node scripts/check-identity.cjs && electron-builder --win msix",
+    "build:msix": "node scripts/build-ts.cjs && node scripts/check-identity.cjs && node node_modules/electron-builder/cli.js --win msix --config.asar=false --config.electronFuses.onlyLoadAppFromAsar=false && node scripts/check-msix-layout.cjs release/win-unpacked",
     "verify": "node scripts/check-deps.cjs && node scripts/check-identity.cjs && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json --noEmit && node scripts/generate-conversions.cjs && tsx --test tests/*.test.ts"
   },
   "dependencies": {
@@ -83,13 +83,13 @@
     },
     "msix": {
       "applicationId": "PCWrapped",
-      "identityName": "Example.PCWrappedPreview",
-      "publisher": "CN=ms",
-      "publisherDisplayName": "PC Wrapped Preview",
-      "displayName": "PC Wrapped Preview",
+      "identityName": "PaulGrimu.PCWrapped",
+      "publisher": "CN=077C1390-8C9F-4DBE-AD6E-C01D348FB24D",
+      "publisherDisplayName": "Paul Grimu",
+      "displayName": "PC Wrapped",
       "backgroundColor": "#fff7ef",
       "showNameOnTiles": true,
-      "createMsixupload": false,
+      "createMsixupload": true,
       "addAutoLaunchExtension": false
     },
     "portable": {

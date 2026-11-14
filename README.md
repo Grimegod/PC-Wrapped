@@ -1,54 +1,51 @@
 # PC Wrapped
 
-_Your computer’s year in review. Funny, private, yours._
+_A little desktop folklore._
 
-Ever wonder where your day actually went? PC Wrapped shows how your time splits across apps, how long you can really stay focused, and how long it takes you to get back after you get pulled away. Then it turns those numbers into a card you can share, or keep to yourself.
+PC Wrapped is a Windows app for a friendly daily or weekly recap of your active time across apps. It turns a few local totals into a story card you can keep or share on your terms.
+
+**[Visit the presentation site](https://grimegod.github.io/PC-Wrapped/)** · **[Microsoft Store listing](https://apps.microsoft.com/detail/9PLJFV595G0X)** · **[GitHub releases](https://github.com/Grimegod/PC-Wrapped/releases/latest)**
 
 ## What it does
 
-- Tracks which app is in the foreground and when you are idle.
-- Finds your longest focus streak and your return time after a long app visit.
-- Gives you an archetype and absurd comparisons for your screen time.
-- Exports a story-size or square card as a PNG, with colour emoji and a short top-three app cast.
-- Offers a share hand-off for WhatsApp, Telegram, Instagram, Facebook, Messenger, LinkedIn, TikTok, Snapchat and X after you preview and save the card. Instagram, TikTok and Snapchat get the PNG on your clipboard, since they have no share page that accepts an image.
+- Tracks which app is in the foreground and when the PC is idle. Tracking stays paused until you start it.
+- Summarizes daily and weekly app time, the longest uninterrupted app stretch, and app changes.
+- Adds playful archetypes and comparisons to keep the recap light; it does not score your productivity.
+- Exports a previewed story-size or square recap card as a PNG.
 - Lets you exclude apps from future tracking or hide app names on cards.
+- Offers user-initiated sharing routes. The PNG is saved locally; you choose whether to attach or post it.
 
-## What it does not do
+## Privacy
 
-- It does not read window titles, take screenshots, or monitor keystrokes.
-- It does not need an account or send activity to a server.
-- Sharing opens the site in your browser, or copies the PNG for Instagram. You attach the saved image there yourself, so nothing leaves the app on its own.
-- It does not judge whether your time was productive.
+Your activity history stays on your PC. PC Wrapped does not require an account or send your history to a PC Wrapped server. It does not read window titles, browser URLs, screenshots, keyboard input, or document contents. Daily app aggregates are kept for up to 365 days and can be deleted from Settings.
 
-## Your data stays on your computer
+If you choose a sharing route, the app may open an external provider with a short caption based on aggregate recap values, or copy the saved PNG to your clipboard. The app does not upload the image. See the [privacy details](https://grimegod.github.io/PC-Wrapped/privacy.html).
 
-- Only daily totals per app are stored, for up to 365 days.
-- Excluded apps add no future time, switches, streak time, or return time. Existing history changes only if you separately confirm **Also remove past data**.
-- Hidden apps remain in your totals and percentages but appear as **Hidden app** on cards. This is off until you choose it.
-- Use **Delete all history** to remove saved activity.
-- Tracking starts only when you press **Start tracking**. Start-at-login is off by default.
+## Get PC Wrapped
 
-**Open source.** The code lives in the [PC Wrapped repository](https://github.com/Grimegod/PC-Wrapped), and the repository is public. Issues and pull requests are welcome.
+PC Wrapped is now available in the [Microsoft Store](https://apps.microsoft.com/detail/9PLJFV595G0X). Direct Windows packages will be attached to [GitHub Releases](https://github.com/Grimegod/PC-Wrapped/releases/latest); release binaries are distributed there rather than committed to the source history.
 
-**Windows first.** macOS and Linux may come later.
+## Run locally
 
-## Run
-
-Install Node.js 20 or later and pnpm. Then, from this folder, run:
+Install Node.js 20 or later and pnpm. From the repository folder:
 
 ```powershell
 pnpm install
 pnpm dev
 ```
 
-`pnpm dev` generates the app icons, builds the TypeScript and renderer files, and launches the app. Closing the window keeps PC Wrapped in the Windows tray; choose **Quit** from the tray menu to exit.
+`pnpm dev` builds the TypeScript and renderer files, then launches the app. Closing the window keeps PC Wrapped in the Windows tray; choose **Quit** from the tray menu to exit.
 
-## Test and build
+## Build and verify
 
 ```powershell
-pnpm test
+pnpm verify
 pnpm build:portable
 pnpm build:msix
 ```
 
-Build outputs go to `release/`. The MSIX identity is a preview placeholder and must be replaced with the publisher identity reserved for the Microsoft Store before submission.
+The MSIX uses the publisher identity reserved for the Microsoft Store. The `.msixupload` file is for Partner Center submission; the `.msix` is the installable package for a GitHub Release.
+
+## Repository and license
+
+No license file has been published, so the repository does not currently grant reuse or redistribution rights. Issues and pull requests are welcome.
