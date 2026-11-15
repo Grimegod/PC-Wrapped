@@ -102,5 +102,14 @@
   "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "publicHoistPattern": [
+      "app-builder-lib",
+      "builder-util",
+      "builder-util-runtime",
+      "@electron/asar",
+      "chalk"
+    ]
   }
 }
