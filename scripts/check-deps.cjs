@@ -10,13 +10,11 @@ const root = path.join(__dirname, "..");
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const required = [
   ...Object.keys(pkg.dependencies ?? {}),
-  ...Object.keys(pkg.devDependencies ?? {}),
-  // These are electron-builder's own helpers. pnpm's isolated layout keeps them out of the root
-  // node_modules, which is fine for building: electron-builder resolves them from its own store.
-  // Only check them where they are meant to be reachable.
-  ...(fs.existsSync(path.join(root, "node_modules", "electron-builder"))
-    ? ["app-builder-lib", "builder-util", "builder-util-runtime", "@electron/asar", "chalk"]
-    : [])
+  ...Object.keys(pkg.devDependencies ?? {})
+  // electron-builder's own helpers are deliberately NOT listed here. pnpm's isolated layout keeps
+  // them inside node_modules/.pnpm and electron-builder resolves them from there, so requiring them
+  // at the root failed on every CI run while the build itself worked. The list below is only what
+  // this repository declares and what the build script loads by name.
 ];
 
 // A package is present when its manifest is on disk. Requiring it is not the test: `@types/*`
