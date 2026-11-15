@@ -77,7 +77,7 @@ h1 em, .closing h2 em { color: var(--gold); font-style: normal; }
 .spark { position: absolute; color: var(--gold); font-size: 19px; text-shadow: 0 0 18px #f1c48d75; }
 .spark-a { top: 74px; right: 47px; }
 .spark-b { bottom: 85px; left: 37px; color: var(--mint); font-size: 23px; }
-.recap-card { position: relative; width: min(100%, 380px); border: 1px solid #fff3e326; border-radius: 25px; padding: 25px; color: #2d2340; background: linear-gradient(165deg, #fff8ea, #fff0dc 55%, #f7eafb); box-shadow: 0 28px 70px #0008, 0 0 0 9px #f1c48d08; transform: rotate(2deg); }
+.recap-card { position: relative; width: min(100%, 380px); border: 1px solid #fff3e326; border-radius: 25px; padding: 25px; color: #2d2340; background: linear-gradient(165deg, #fff8ea, #fff0dc 55%, #f7eafb); box-shadow: 0 28px 70px #0008, 0 0 0 9px #f1c48d08; transform: none; }
 .recap-card::after { position: absolute; top: 15px; right: 18px; width: 9px; height: 9px; border-radius: 50%; background: #40d7aa; box-shadow: -16px 9px 0 #55bfe9, -2px 30px 0 #ef68a8; content: ""; }
 .card-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 17px; border-bottom: 1px solid #7d6a791a; }
 .card-brand { color: #2d2340; font-size: 11px; font-weight: 950; letter-spacing: .09em; }
