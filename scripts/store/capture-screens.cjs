@@ -10,10 +10,38 @@ const { renderCard } = require(path.join(root, "dist", "src", "main", "card.js")
 const day = {
   appChanges: 137,
   apps: {
-    "code.exe": { label: "Visual Studio Code", activeMs: 4 * 3600e3, longestStreakMs: 2.5 * 3600e3, interruptionsStarted: 6, interruptionsCompleted: 5, returnTimeTotalMs: 12 * 60e3 },
-    "chrome.exe": { label: "Google Chrome", activeMs: 2.4 * 3600e3, longestStreakMs: 50 * 60e3, interruptionsStarted: 9, interruptionsCompleted: 8, returnTimeTotalMs: 9 * 60e3 },
-    "slack.exe": { label: "Slack", activeMs: 1.2 * 3600e3, longestStreakMs: 22 * 60e3, interruptionsStarted: 11, interruptionsCompleted: 9, returnTimeTotalMs: 7 * 60e3 },
-    "spotify.exe": { label: "Spotify", activeMs: 0.8 * 3600e3, longestStreakMs: 40 * 60e3, interruptionsStarted: 3, interruptionsCompleted: 3, returnTimeTotalMs: 4 * 60e3 }
+    "code.exe": {
+      label: "Visual Studio Code",
+      activeMs: 4 * 3600e3,
+      longestStreakMs: 2.5 * 3600e3,
+      interruptionsStarted: 6,
+      interruptionsCompleted: 5,
+      returnTimeTotalMs: 12 * 60e3
+    },
+    "chrome.exe": {
+      label: "Google Chrome",
+      activeMs: 2.4 * 3600e3,
+      longestStreakMs: 50 * 60e3,
+      interruptionsStarted: 9,
+      interruptionsCompleted: 8,
+      returnTimeTotalMs: 9 * 60e3
+    },
+    "slack.exe": {
+      label: "Slack",
+      activeMs: 1.2 * 3600e3,
+      longestStreakMs: 22 * 60e3,
+      interruptionsStarted: 11,
+      interruptionsCompleted: 9,
+      returnTimeTotalMs: 7 * 60e3
+    },
+    "spotify.exe": {
+      label: "Spotify",
+      activeMs: 0.8 * 3600e3,
+      longestStreakMs: 40 * 60e3,
+      interruptionsStarted: 3,
+      interruptionsCompleted: 3,
+      returnTimeTotalMs: 4 * 60e3
+    }
   },
   transitions: {}
 };
@@ -99,7 +127,9 @@ app.whenReady().then(async () => {
     };
   })()`);
   if (!previewStatus.loaded) throw new Error("Store card preview did not load.");
-  console.log(`card preview ${previewStatus.width}x${previewStatus.height}; scroll ${previewStatus.scrollY}; card top ${previewStatus.cardTop}`);
+  console.log(
+    `card preview ${previewStatus.width}x${previewStatus.height}; scroll ${previewStatus.scrollY}; card top ${previewStatus.cardTop}`
+  );
   await capture(win, "store-02-card-and-sharing.png");
   win.hide();
 

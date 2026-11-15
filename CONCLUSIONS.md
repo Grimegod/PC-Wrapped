@@ -13,17 +13,17 @@ through the OS. No account, no network client, no telemetry — the renderer's C
 
 ## What is verified, and how
 
-| Claim                         | Evidence                                                                               |
-| ----------------------------- | -------------------------------------------------------------------------------------- |
+| Claim                         | Evidence                                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | The app runs                  | Portable build launched; app installed from the Microsoft Store and confirmed working by the owner on 14 November 2026 |
-| Tests                         | 58 passing (`tsx --test tests/*.test.ts`)                                              |
-| Types and lint                | `tsc --noEmit` clean, ESLint `--max-warnings 0` clean, Prettier clean                  |
-| Windows App Certification Kit | **PASS on an earlier package**; rerun against the current MSIX before submission       |
-| Package installs              | An earlier signed test package installed as `PCWrapped.Test`; current test is unsigned |
-| Package signature             | **Valid on the earlier test package**; current no-ASAR test package is unsigned        |
-| MSIX workaround               | No-ASAR package layout passed; the unpacked executable opened the app window           |
-| No network                    | CSP locked, no HTTP client in `src/`                                                   |
-| Privacy                       | daily aggregates only; hidden apps appear as "Hidden app"; no titles, no screenshots   |
+| Tests                         | 58 passing (`tsx --test tests/*.test.ts`)                                                                              |
+| Types and lint                | `tsc --noEmit` clean, ESLint `--max-warnings 0` clean, Prettier clean                                                  |
+| Windows App Certification Kit | **PASS on an earlier package**; rerun against the current MSIX before submission                                       |
+| Package installs              | An earlier signed test package installed as `PCWrapped.Test`; current test is unsigned                                 |
+| Package signature             | **Valid on the earlier test package**; current no-ASAR test package is unsigned                                        |
+| MSIX workaround               | No-ASAR package layout passed; the unpacked executable opened the app window                                           |
+| No network                    | CSP locked, no HTTP client in `src/`                                                                                   |
+| Privacy                       | daily aggregates only; hidden apps appear as "Hidden app"; no titles, no screenshots                                   |
 
 ## Original MSIX failure and corrected explanation
 
@@ -80,4 +80,3 @@ changes were made after 13 November; use the current Store listing and release r
 Read these as dated engineering records: `audit/STORE-BLOCKERS.md`, `audit/WACK-RESULT.md`,
 `audit/MSIX-INTEGRITY.md`, and `audit/FIXES-APPLIED.md`. Some findings were superseded by the Store
 publication on 14 November 2026.
-

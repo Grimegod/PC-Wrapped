@@ -134,7 +134,16 @@ app.whenReady().then(async () => {
       assert.equal(image.srcProtocol, "blob:");
       assert.deepEqual(rendererErrors, []);
       images.push(image);
-      console.info("[main] Synthetic " + format + " card preview loaded in renderer: " + image.naturalWidth + "x" + image.naturalHeight + ", " + image.srcProtocol);
+      console.info(
+        "[main] Synthetic " +
+          format +
+          " card preview loaded in renderer: " +
+          image.naturalWidth +
+          "x" +
+          image.naturalHeight +
+          ", " +
+          image.srcProtocol
+      );
     }
     const csp = images[0].policy;
     assert.match(csp, /default-src 'none'/);
