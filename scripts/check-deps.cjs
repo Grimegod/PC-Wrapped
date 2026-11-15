@@ -18,8 +18,12 @@ const required = [
   "chalk"
 ];
 
+// A package is present when its manifest is on disk. Requiring it is not the test: `@types/*`
+// packages are type declarations with no runnable entry point, so require.resolve() fails on a
+// perfect install and used to fail this check on every CI run.
 const missing = required.filter((name) => {
-  if (name.startsWith("@types/")) return !fs.existsSync(path.join(root, "node_modules", name, "package.json"));
+  if (!fs.existsSync(path.join(root, "node_modules", name, "package.json"))) return true;
+  if (name.startsWith("@types/")) return false;
   // Resolve the way the build does: several of these packages do not export ./package.json and
   // would be reported missing when they load perfectly well.
   try {
