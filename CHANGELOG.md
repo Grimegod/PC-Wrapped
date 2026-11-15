@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to PC Wrapped. The project follows [Semantic Versioning](https://semver.org/).
+All notable changes to PCWrapped. The project follows [Semantic Versioning](https://semver.org/).
 
 ## [1.1.0] — 2026-11-15
 
@@ -13,6 +13,10 @@ Two more ranges and a way out with your data.
 - **CSV export.** Settings has an Export CSV button: one row per app per day, newest first, with
   durations in whole seconds and a BOM so Excel reads non-ASCII app names correctly. It exports
   only what was already stored — no window titles, no screenshots.
+
+### Changed
+
+- The app is now called **PCWrapped** everywhere: window title, tray, installer name, login item and copy.
 
 ### Fixed
 

@@ -1,8 +1,8 @@
-# PC Wrapped
+# PCWrapped
 
 _A little desktop folklore._
 
-PC Wrapped is a Windows app for a friendly daily or weekly recap of your active time across apps. It turns a few local totals into a story card you can keep or share on your terms.
+PCWrapped is a Windows app for a friendly daily or weekly recap of your active time across apps. It turns a few local totals into a story card you can keep or share on your terms.
 
 **[Visit the presentation site](https://grimegod.github.io/PC-Wrapped/)** · **[Microsoft Store listing](https://apps.microsoft.com/detail/9PLJFV595G0X)** · **[GitHub releases](https://github.com/Grimegod/PC-Wrapped/releases/latest)**
 
@@ -17,13 +17,13 @@ PC Wrapped is a Windows app for a friendly daily or weekly recap of your active 
 
 ## Privacy
 
-Your activity history stays on your PC. PC Wrapped does not require an account or send your history to a PC Wrapped server. It does not read window titles, browser URLs, screenshots, keyboard input, or document contents. Daily app aggregates are kept for up to 365 days and can be deleted from Settings.
+Your activity history stays on your PC. PCWrapped does not require an account or send your history to a PCWrapped server. It does not read window titles, browser URLs, screenshots, keyboard input, or document contents. Daily app aggregates are kept for up to 365 days and can be deleted from Settings.
 
 If you choose a sharing route, the app may open an external provider with a short caption based on aggregate recap values, or copy the saved PNG to your clipboard. The app does not upload the image. See the [privacy details](https://grimegod.github.io/PC-Wrapped/privacy.html).
 
-## Get PC Wrapped
+## Get PCWrapped
 
-PC Wrapped is now available in the [Microsoft Store](https://apps.microsoft.com/detail/9PLJFV595G0X). Direct Windows packages will be attached to [GitHub Releases](https://github.com/Grimegod/PC-Wrapped/releases/latest); release binaries are distributed there rather than committed to the source history.
+PCWrapped is now available in the [Microsoft Store](https://apps.microsoft.com/detail/9PLJFV595G0X). Direct Windows packages will be attached to [GitHub Releases](https://github.com/Grimegod/PC-Wrapped/releases/latest); release binaries are distributed there rather than committed to the source history.
 
 ## Run locally
 
@@ -34,7 +34,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` builds the TypeScript and renderer files, then launches the app. Closing the window keeps PC Wrapped in the Windows tray; choose **Quit** from the tray menu to exit.
+`pnpm dev` builds the TypeScript and renderer files, then launches the app. Closing the window keeps PCWrapped in the Windows tray; choose **Quit** from the tray menu to exit.
 
 ## Build and verify
 
