@@ -25,6 +25,16 @@ body {
   font-family: "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+}
+/* Headings, short labels, buttons and the sample card stay ragged: justifying them opens
+   rivers of space and looks worse than a straight edge. */
+h1, h2, h3, h4, summary, .eyebrow, .button, .nav-shell, .brand, .card-topline, .card-total,
+.card-foot, .art-caption, .faq-list summary, .privacy-list strong, footer {
+  text-align: initial;
+  hyphens: manual;
 }
 a { color: inherit; }
 a:focus-visible, summary:focus-visible { outline: 3px solid var(--mint); outline-offset: 4px; }
