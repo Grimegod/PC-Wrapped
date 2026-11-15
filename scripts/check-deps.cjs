@@ -11,11 +11,12 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 const required = [
   ...Object.keys(pkg.dependencies ?? {}),
   ...Object.keys(pkg.devDependencies ?? {}),
-  "app-builder-lib",
-  "builder-util",
-  "builder-util-runtime",
-  "@electron/asar",
-  "chalk"
+  // These are electron-builder's own helpers. pnpm's isolated layout keeps them out of the root
+  // node_modules, which is fine for building: electron-builder resolves them from its own store.
+  // Only check them where they are meant to be reachable.
+  ...(fs.existsSync(path.join(root, "node_modules", "electron-builder"))
+    ? ["app-builder-lib", "builder-util", "builder-util-runtime", "@electron/asar", "chalk"]
+    : [])
 ];
 
 // A package is present when its manifest is on disk. Requiring it is not the test: `@types/*`
