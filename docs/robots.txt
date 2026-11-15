@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://grimegod.github.io/PC-Wrapped/sitemap.xml
