@@ -133,7 +133,7 @@ export function shareCaption(period: RecapPeriod, totalActiveMs: number, archety
   const minutes = Math.max(0, Math.round(totalActiveMs / 60_000));
   const hours = Math.floor(minutes / 60);
   const duration = hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
-  return `My ${PERIOD_WORD[period]} on the desktop: ${duration} of app time and I'm "${archetypeName}". Made with PC Wrapped, locally.`;
+  return `My ${PERIOD_WORD[period]} on the desktop: ${duration} of app time and I'm "${archetypeName}". Made with PCWrapped, locally.`;
 }
 
 /**

@@ -1,4 +1,4 @@
-export const APP_NAME = "PC Wrapped";
+export const APP_NAME = "PCWrapped";
 /** Windows application identity. The package `appId`, the MSIX manifest and the AppUserModelId all derive from this. */
 export const APP_ID = "com.grimegod.pcwrapped";
 export const RETENTION_DAYS = 365;

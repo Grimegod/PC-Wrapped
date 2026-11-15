@@ -100,7 +100,7 @@ function saveHistory(): void {
 }
 
 function startTracker(): void {
-  if (!isWindows) throw new Error("PC Wrapped currently supports Windows only.");
+  if (!isWindows) throw new Error("PCWrapped currently supports Windows only.");
   if (store.historyReadOnlyReason) throw new Error(store.historyReadOnlyReason);
   if (tracker) return;
   const script = app.isPackaged ? path.join(process.resourcesPath, "tracker.ps1") : path.join(app.getAppPath(), "scripts", "tracker.ps1");
@@ -247,7 +247,7 @@ function createTray(): void {
   tray.setToolTip(`${APP_NAME} · paused`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Show PC Wrapped", click: () => mainWindow?.show() },
+      { label: "Show PCWrapped", click: () => mainWindow?.show() },
       { type: "separator" },
       {
         label: "Start tracking",
@@ -279,8 +279,8 @@ async function askStartupPreferenceOnce(): Promise<void> {
   if (store.settings.startupPrompted) return;
   const response = await dialog.showMessageBox(mainWindow!, {
     type: "question",
-    title: "Start PC Wrapped with Windows?",
-    message: "Would you like PC Wrapped to open when you sign in? This does not start activity tracking.",
+    title: "Start PCWrapped with Windows?",
+    message: "Would you like PCWrapped to open when you sign in? This does not start activity tracking.",
     detail: "Startup is off by default. You can change this later in Settings.",
     buttons: ["Keep off", "Enable at login"],
     defaultId: 0,
