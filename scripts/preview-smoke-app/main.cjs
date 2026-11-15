@@ -81,22 +81,28 @@ async function openTestWindow() {
   return window;
 }
 
-async function waitForRendererImage(window) {
-  return window.webContents.executeJavaScript(`(async () => {
-    const until = Date.now() + 8000;
-    const button = document.getElementById("preview-button");
-    while (button.disabled && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 25));
-    if (button.disabled) throw new Error("Renderer did not enable preview from the synthetic recap data.");
-    const image = document.getElementById("card-preview");
-    const loaded = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Preview image did not finish loading.")), 8000);
-      image.addEventListener("load", () => { clearTimeout(timer); resolve(); }, { once: true });
-      image.addEventListener("error", () => { clearTimeout(timer); reject(new Error("Preview image emitted an error event.")); }, { once: true });
-    });
-    button.click();
-    await loaded;
-    return { naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight, srcProtocol: new URL(image.src).protocol };
-  })()`);
+async function waitForRendererImage(window, format) {
+  const script = [
+    "(async () => {",
+    "const until = Date.now() + 8000;",
+    "const button = document.getElementById('preview-button');",
+    "while (button.disabled && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 25));",
+    "if (button.disabled) throw new Error('Renderer did not enable preview from the synthetic recap data.');",
+    "const shape = document.getElementById('card-format');",
+    "shape.value = " + JSON.stringify(format) + ";",
+    "const image = document.getElementById('card-preview');",
+    "const loaded = new Promise((resolve, reject) => {",
+    "const timer = setTimeout(() => reject(new Error('Preview image did not finish loading.')), 8000);",
+    "image.addEventListener('load', () => { clearTimeout(timer); resolve(); }, { once: true });",
+    "image.addEventListener('error', () => { clearTimeout(timer); reject(new Error('Preview image emitted an error event.')); }, { once: true });",
+    "});",
+    "button.click();",
+    "await loaded;",
+    "const policy = Array.from(document.querySelectorAll('meta')).find((meta) => meta.httpEquiv.toLowerCase() === 'content-security-policy')?.content ?? '';",
+    "return { format: shape.value, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight, srcProtocol: new URL(image.src).protocol, policy };",
+    "})()"
+  ].join("\n");
+  return window.webContents.executeJavaScript(script);
 }
 
 async function verifyEmptyState(window) {
@@ -118,13 +124,24 @@ async function verifyEmptyState(window) {
 app.whenReady().then(async () => {
   try {
     const populatedWindow = await openTestWindow();
-    const image = await waitForRendererImage(populatedWindow);
-    assert.ok(image.naturalWidth > 0, `Expected a loaded image, got naturalWidth=${image.naturalWidth}`);
-    assert.equal(image.naturalWidth, 1080);
-    assert.ok(image.naturalHeight > 0);
-    assert.equal(image.srcProtocol, "blob:");
+    const images = [];
+    for (const format of ["story", "square"]) {
+      const image = await waitForRendererImage(populatedWindow, format);
+      const expectedHeight = format === "story" ? 1920 : 1080;
+      assert.ok(image.naturalWidth > 0, "Expected a loaded " + format + " image, got naturalWidth=" + image.naturalWidth);
+      assert.equal(image.naturalWidth, 1080);
+      assert.equal(image.naturalHeight, expectedHeight);
+      assert.equal(image.srcProtocol, "blob:");
+      assert.deepEqual(rendererErrors, []);
+      images.push(image);
+      console.info("[main] Synthetic " + format + " card preview loaded in renderer: " + image.naturalWidth + "x" + image.naturalHeight + ", " + image.srcProtocol);
+    }
+    const csp = images[0].policy;
+    assert.match(csp, /default-src 'none'/);
+    assert.match(csp, /img-src 'self' blob:/);
+    assert.match(csp, /connect-src 'none'/);
+    assert.doesNotMatch(csp, /https?:|wss?:/i);
     assert.deepEqual(rendererErrors, []);
-    console.info(`[main] Synthetic card preview loaded in renderer: ${image.naturalWidth}x${image.naturalHeight}, ${image.srcProtocol}`);
     activeDay = emptyDay();
     const emptyState = await verifyEmptyState(populatedWindow);
     assert.equal(emptyState.previewDisabled, true);
@@ -133,7 +150,7 @@ app.whenReady().then(async () => {
     assert.equal(emptyState.emptyMessage, "Track for a while to create a card");
     assert.deepEqual(rendererErrors, []);
     console.info("[main] Empty recap keeps the preview hidden and both card actions disabled.");
-    fs.writeFileSync(resultPath, JSON.stringify({ ok: true, image, emptyState, rendererErrors }), "utf8");
+    fs.writeFileSync(resultPath, JSON.stringify({ ok: true, images, csp, emptyState, rendererErrors }), "utf8");
     populatedWindow.destroy();
     app.quit();
   } catch (error) {

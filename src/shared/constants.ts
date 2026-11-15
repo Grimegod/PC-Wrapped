@@ -14,3 +14,6 @@ export const STORY_CARD = { width: 1080, height: 1920 } as const;
 export const SQUARE_CARD = { width: 1080, height: 1080 } as const;
 
 export type CardFormat = "story" | "square";
+
+/** The ranges a recap can cover. `year` runs from 1 January to today. */
+export type RecapPeriod = "day" | "week" | "month" | "year";

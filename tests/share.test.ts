@@ -118,7 +118,7 @@ test("the renderer keeps sharing behind preview and save", () => {
   for (const target of ["whatsapp", "telegram", "instagram", "facebook", "messenger", "linkedin", "tiktok", "snapchat", "x"]) {
     assert.match(html, new RegExp(`data-share="${target}"`));
   }
-  const policy = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1] ?? "";
+  const policy = html.match(/http-equiv="Content-Security-Policy"\s+content="([^"]+)"/s)?.[1] ?? "";
   assert.match(policy, /connect-src 'none'/);
   assert.match(policy, /default-src 'none'/);
 });

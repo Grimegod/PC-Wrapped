@@ -39,5 +39,5 @@ test("inactive recap period remains readable on the cocoa switch", () => {
 test("selected recap period remains readable and keyboard focus is visible", () => {
   const selected = lastRule(".period-button.active");
   assert.ok(contrastRatio(colorFrom(selected, "color"), colorFrom(selected, "background")) >= 4.5);
-  assert.match(lastRule(".period-button:focus-visible"), /outline:2px solid var\(--mint\)/);
+  assert.match(lastRule(".period-button:focus-visible"), /outline:\s*2px solid var\(--mint\)/);
 });

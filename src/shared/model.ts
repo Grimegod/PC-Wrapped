@@ -1,5 +1,5 @@
-import type { CardFormat } from "./constants";
-export type { CardFormat } from "./constants";
+import type { CardFormat, RecapPeriod } from "./constants";
+export type { CardFormat, RecapPeriod } from "./constants";
 
 export interface AppDayAggregate {
   label: string;
@@ -77,9 +77,10 @@ export interface AppBridge {
   setHiddenOnCard(executableId: string, label: string, hidden: boolean): Promise<AppState>;
   removeAppPastData(executableId: string): Promise<AppRemovalResult>;
   deleteHistory(): Promise<void>;
-  previewCard(format: CardFormat, period: "day" | "week"): Promise<string>;
-  exportCard(format: CardFormat, period: "day" | "week"): Promise<string | null>;
-  shareCard(target: ShareTarget, format: CardFormat, period: "day" | "week", savedPath: string | null): Promise<ShareOutcome>;
+  exportHistoryCsv(): Promise<string | null>;
+  previewCard(format: CardFormat, period: RecapPeriod): Promise<string>;
+  exportCard(format: CardFormat, period: RecapPeriod): Promise<string | null>;
+  shareCard(target: ShareTarget, format: CardFormat, period: RecapPeriod, savedPath: string | null): Promise<ShareOutcome>;
   onState(callback: (state: AppState) => void): () => void;
 }
 
@@ -90,10 +91,16 @@ export interface AppState {
   hiddenApps: AppPreferenceMap;
   today: DayAggregate;
   week: DayAggregate;
+  month: DayAggregate;
+  year: DayAggregate;
   todayStats: RecapStats;
   weekStats: RecapStats;
+  monthStats: RecapStats;
+  yearStats: RecapStats;
   todayArchetype: Archetype;
   weekArchetype: Archetype;
+  monthArchetype: Archetype;
+  yearArchetype: Archetype;
   warning: string;
 }
 

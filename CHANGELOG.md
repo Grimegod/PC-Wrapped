@@ -2,6 +2,24 @@
 
 All notable changes to PC Wrapped. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-11-15
+
+Two more ranges and a way out with your data.
+
+### Added
+
+- **Month and year recaps.** The period switch now offers Today, This week, This month and This
+  year. The year range runs from 1 January to today. Cards and share captions name the range.
+- **CSV export.** Settings has an Export CSV button: one row per app per day, newest first, with
+  durations in whole seconds and a BOM so Excel reads non-ASCII app names correctly. It exports
+  only what was already stored — no window titles, no screenshots.
+
+### Fixed
+
+- The period switch wraps instead of overflowing once there are four ranges.
+- Two CSP and focus-ring tests were matching exact formatting rather than the property they meant
+  to check; they now check the property.
+
 ## [1.0.0] — 2026-11-13
 
 First release. Local-only Windows activity recap: per-day app aggregates, recap cards in story
@@ -48,4 +66,3 @@ and square formats, nine sharing targets through the OS, and no network client o
 
 First working build: local-only tracking, daily and weekly recap cards in story and square
 formats, and OS hand-off sharing to nine networks.
-

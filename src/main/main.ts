@@ -5,10 +5,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { ActivityAggregator, combineDays, emptyDay, recapStats, removeAppFromHistory } from "../shared/aggregation";
 import { chooseArchetype } from "../shared/archetypes";
-import { APP_ID, APP_NAME, IDLE_THRESHOLD_SECONDS, SAMPLE_INTERVAL_MS, type CardFormat } from "../shared/constants";
-import { dayKeysEndingAt, localDateKey } from "../shared/dates";
+import { APP_ID, APP_NAME, IDLE_THRESHOLD_SECONDS, SAMPLE_INTERVAL_MS, type CardFormat, type RecapPeriod } from "../shared/constants";
+import { dayKeysEndingAt, localDateKey, monthKeys, yearKeysToDate } from "../shared/dates";
 import type { AppState, DayAggregate, ShareOutcome, ShareTarget } from "../shared/model";
 import { renderCard, isCardFormat } from "./card";
+import { historyToCsv } from "./csv";
 import { isTrustedSenderUrl } from "./ipc-guard";
 import { parseTrackerLine, sanitizeTrackerLabel } from "./tracker-line";
 import { isShareableSavedCard, SavedCardLedger, shareCaption, shareCard } from "./share";
@@ -38,27 +39,47 @@ if (isWindows) {
   app.setAppUserModelId(APP_ID);
 }
 
-function aggregateForPeriod(period: "day" | "week"): DayAggregate {
-  const keys = period === "day" ? [localDateKey(Date.now())] : dayKeysEndingAt(Date.now(), 7);
-  return combineDays(keys.map((key) => store.history[key] ?? emptyDay()));
+function keysForPeriod(period: RecapPeriod, now = Date.now()): string[] {
+  if (period === "day") return [localDateKey(now)];
+  if (period === "week") return dayKeysEndingAt(now, 7);
+  if (period === "month") return monthKeys(now);
+  return yearKeysToDate(now);
+}
+
+function aggregateForPeriod(period: RecapPeriod): DayAggregate {
+  return combineDays(keysForPeriod(period).map((key) => store.history[key] ?? emptyDay()));
 }
 
 function currentState(): AppState {
-  const today = aggregateForPeriod("day");
-  const week = aggregateForPeriod("week");
-  const todayStats = recapStats(today);
-  const weekStats = recapStats(week);
+  const aggregates: Record<RecapPeriod, DayAggregate> = {
+    day: aggregateForPeriod("day"),
+    week: aggregateForPeriod("week"),
+    month: aggregateForPeriod("month"),
+    year: aggregateForPeriod("year")
+  };
+  const stats: Record<RecapPeriod, ReturnType<typeof recapStats>> = {
+    day: recapStats(aggregates.day),
+    week: recapStats(aggregates.week),
+    month: recapStats(aggregates.month),
+    year: recapStats(aggregates.year)
+  };
   return {
     tracking,
     startAtLogin: store.settings.startAtLogin,
     excludedApps: { ...store.settings.excludedApps },
     hiddenApps: { ...store.settings.hiddenApps },
-    today,
-    week,
-    todayStats,
-    weekStats,
-    todayArchetype: chooseArchetype(todayStats),
-    weekArchetype: chooseArchetype(weekStats),
+    today: aggregates.day,
+    week: aggregates.week,
+    month: aggregates.month,
+    year: aggregates.year,
+    todayStats: stats.day,
+    weekStats: stats.week,
+    monthStats: stats.month,
+    yearStats: stats.year,
+    todayArchetype: chooseArchetype(stats.day),
+    weekArchetype: chooseArchetype(stats.week),
+    monthArchetype: chooseArchetype(stats.month),
+    yearArchetype: chooseArchetype(stats.year),
     warning: warning || store.historyReadOnlyReason
   };
 }
@@ -273,7 +294,7 @@ async function askStartupPreferenceOnce(): Promise<void> {
   broadcastState();
 }
 
-async function previewCard(format: CardFormat, period: "day" | "week"): Promise<string> {
+async function previewCard(format: CardFormat, period: RecapPeriod): Promise<string> {
   const buffer = renderCard(aggregateForPeriod(period), format, period, new Set(Object.keys(store.settings.hiddenApps)));
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
@@ -360,7 +381,21 @@ handle("history:delete", async () => {
   broadcastState();
   return true;
 });
-handle("card:preview", async (event, format: CardFormat, period: "day" | "week") => {
+handle("history:export-csv", async () => {
+  const days = Object.keys(store.history).length;
+  if (!days) return null;
+  const stamp = localDateKey(Date.now());
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    title: "Export history as CSV",
+    defaultPath: `pc-wrapped-history-${stamp}.csv`,
+    filters: [{ name: "CSV file", extensions: ["csv"] }]
+  });
+  if (result.canceled || !result.filePath) return null;
+  fs.writeFileSync(result.filePath, historyToCsv(store.history), "utf8");
+  return result.filePath;
+});
+
+handle("card:preview", async (event, format: CardFormat, period: RecapPeriod) => {
   if (!isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported card option.");
   try {
     const dataUrl = await previewCard(format, period);
@@ -374,7 +409,7 @@ handle("card:preview", async (event, format: CardFormat, period: "day" | "week")
     throw error;
   }
 });
-handle("card:save", async (event, format: CardFormat, period: "day" | "week") => {
+handle("card:save", async (event, format: CardFormat, period: RecapPeriod) => {
   if (!isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported card option.");
   const buffer = renderCard(aggregateForPeriod(period), format, period, new Set(Object.keys(store.settings.hiddenApps)));
   const result = await dialog.showSaveDialog(mainWindow!, {
@@ -388,27 +423,24 @@ handle("card:save", async (event, format: CardFormat, period: "day" | "week") =>
   return result.filePath;
 });
 
-handle(
-  "card:share",
-  async (event, target: unknown, format: CardFormat, period: "day" | "week", savedPath: unknown): Promise<ShareOutcome> => {
-    if (!isShareTarget(target) || !isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported share option.");
-    const aggregate = aggregateForPeriod(period);
-    const stats = recapStats(aggregate);
-    if (stats.totalActiveMs <= 0) return { opened: false, message: "Track for a while to create a card first." };
-    // Only a PNG this app saved a moment ago is ever handed out.
-    const filePath = isShareableSavedCard(savedCards, savedPath) ? savedPath : "";
-    return shareCard({
-      target,
-      filePath,
-      caption: shareCaption(period, stats.totalActiveMs, chooseArchetype(stats).name),
-      copyImage: (source) => {
-        const image = nativeImage.createFromPath(source);
-        if (image.isEmpty()) throw new Error("The saved card could not be read for the clipboard.");
-        clipboard.writeImage(image);
-      }
-    });
-  }
-);
+handle("card:share", async (event, target: unknown, format: CardFormat, period: RecapPeriod, savedPath: unknown): Promise<ShareOutcome> => {
+  if (!isShareTarget(target) || !isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported share option.");
+  const aggregate = aggregateForPeriod(period);
+  const stats = recapStats(aggregate);
+  if (stats.totalActiveMs <= 0) return { opened: false, message: "Track for a while to create a card first." };
+  // Only a PNG this app saved a moment ago is ever handed out.
+  const filePath = isShareableSavedCard(savedCards, savedPath) ? savedPath : "";
+  return shareCard({
+    target,
+    filePath,
+    caption: shareCaption(period, stats.totalActiveMs, chooseArchetype(stats).name),
+    copyImage: (source) => {
+      const image = nativeImage.createFromPath(source);
+      if (image.isEmpty()) throw new Error("The saved card could not be read for the clipboard.");
+      clipboard.writeImage(image);
+    }
+  });
+});
 
 void app.whenReady().then(async () => {
   if (!isWindows) {
@@ -441,8 +473,8 @@ const broadcastTimer = setInterval(() => {
 }, SAMPLE_INTERVAL_MS * 2);
 broadcastTimer.unref();
 
-function isPeriod(value: unknown): value is "day" | "week" {
-  return value === "day" || value === "week";
+function isPeriod(value: unknown): value is RecapPeriod {
+  return value === "day" || value === "week" || value === "month" || value === "year";
 }
 const SHARE_TARGETS: readonly ShareTarget[] = [
   "whatsapp",

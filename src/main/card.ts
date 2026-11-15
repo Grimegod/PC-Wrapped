@@ -1,7 +1,10 @@
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
 import path from "node:path";
 import { absurdConversion } from "../shared/conversions";
-import { STORY_CARD, SQUARE_CARD, type CardFormat } from "../shared/constants";
+import { STORY_CARD, SQUARE_CARD, type CardFormat, type RecapPeriod } from "../shared/constants";
+
+/** Card headline for each range. */
+const PERIOD_HEADING: Record<RecapPeriod, string> = { day: "TODAY", week: "THIS WEEK", month: "THIS MONTH", year: "THIS YEAR" };
 import { chooseArchetype } from "../shared/archetypes";
 import { recapStats } from "../shared/aggregation";
 import type { Archetype, DayAggregate, RecapStats } from "../shared/model";
@@ -134,7 +137,7 @@ export function isCardFormat(value: unknown): value is CardFormat {
 export function renderCard(
   day: DayAggregate,
   format: CardFormat,
-  period: "day" | "week",
+  period: RecapPeriod,
   hiddenAppIds: ReadonlySet<string> = new Set()
 ): Buffer {
   registerCardFonts();
@@ -182,7 +185,7 @@ export function renderCard(
   ctx.fillStyle = ink;
   drawCardText(ctx, "PC WRAPPED", left, compact ? 150 : 170, 34, 700);
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, `${period === "day" ? "TODAY" : "THIS WEEK"} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
+  drawCardText(ctx, `${PERIOD_HEADING[period]} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
 
   const headline = ctx.createLinearGradient(left, 0, left + 520, 0);
   headline.addColorStop(0, coral);
@@ -426,7 +429,7 @@ function drawEmptyCard(
   left: number,
   innerWidth: number,
   compact: boolean,
-  period: "day" | "week"
+  period: RecapPeriod
 ): void {
   const margin = 64;
   ctx.fillStyle = cream;
@@ -438,7 +441,7 @@ function drawEmptyCard(
   ctx.fillStyle = ink;
   drawCardText(ctx, "PC WRAPPED", left, compact ? 150 : 170, 34, 700);
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, `${period === "day" ? "TODAY" : "THIS WEEK"} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
+  drawCardText(ctx, `${PERIOD_HEADING[period]} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
 
   const panel = ctx.createLinearGradient(left, 0, left + innerWidth, 0);
   panel.addColorStop(0, "#ede8ff");

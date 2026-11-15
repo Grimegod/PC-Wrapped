@@ -1,4 +1,5 @@
 import type { AppBridge, AppState, DayAggregate, RecapStats, ShareTarget } from "../shared/model.js";
+import type { RecapPeriod } from "../shared/constants.js";
 import { absurdConversion } from "../shared/conversions.js";
 import { pngDataUrlToBlob } from "./card-preview.js";
 
@@ -8,7 +9,7 @@ declare global {
   }
 }
 
-let period: "day" | "week" = "day";
+let period: RecapPeriod = "day";
 let latestState: AppState | undefined;
 let previewObjectUrl: string | undefined;
 let savedCardPath: string | null = null;
@@ -19,15 +20,26 @@ const byId = <T extends HTMLElement>(id: string): T => {
   return element as T;
 };
 
+function isRecapPeriod(value: string | undefined): value is RecapPeriod {
+  return value === "day" || value === "week" || value === "month" || value === "year";
+}
+
 function duration(ms: number): string {
   const minutes = Math.max(0, Math.round(ms / 60_000));
   return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`;
 }
 
 function currentData(state: AppState): { day: DayAggregate; stats: RecapStats; archetype: AppState["todayArchetype"] } {
-  return period === "day"
-    ? { day: state.today, stats: state.todayStats, archetype: state.todayArchetype }
-    : { day: state.week, stats: state.weekStats, archetype: state.weekArchetype };
+  switch (period) {
+    case "day":
+      return { day: state.today, stats: state.todayStats, archetype: state.todayArchetype };
+    case "week":
+      return { day: state.week, stats: state.weekStats, archetype: state.weekArchetype };
+    case "month":
+      return { day: state.month, stats: state.monthStats, archetype: state.monthArchetype };
+    case "year":
+      return { day: state.year, stats: state.yearStats, archetype: state.yearArchetype };
+  }
 }
 
 function render(state: AppState): void {
@@ -224,6 +236,12 @@ byId("tracking-button").addEventListener("click", () => {
 byId("startup-toggle").addEventListener("change", (event) => {
   void window.pcWrapped.setStartAtLogin((event.currentTarget as HTMLInputElement).checked);
 });
+byId("export-csv-button").addEventListener("click", () => {
+  void (async () => {
+    const saved = await window.pcWrapped.exportHistoryCsv();
+    showNotice(saved ? `History exported to ${saved}` : "Nothing saved to export yet.");
+  })().catch((error: unknown) => showNotice(error instanceof Error ? error.message : "The history could not be exported."));
+});
 byId("delete-button").addEventListener("click", () => {
   void (async () => {
     await window.pcWrapped.deleteHistory();
@@ -243,7 +261,7 @@ byId("settings-button").addEventListener("click", () => {
 document.querySelectorAll<HTMLButtonElement>(".period-button").forEach((button) =>
   button.addEventListener("click", () => {
     clearCardPreview();
-    period = button.dataset.period === "week" ? "week" : "day";
+    period = isRecapPeriod(button.dataset.period) ? button.dataset.period : "day";
     document.querySelectorAll(".period-button").forEach((item) => {
       item.classList.toggle("active", item === button);
       item.setAttribute("aria-selected", String(item === button));

@@ -5,7 +5,7 @@ import test from "node:test";
 
 test("renderer CSP uses a deny-by-default policy and blocks remote connections", () => {
   const html = fs.readFileSync(path.join(process.cwd(), "src", "renderer", "index.html"), "utf8");
-  const policy = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1];
+  const policy = html.match(/http-equiv="Content-Security-Policy"\s+content="([^"]+)"/s)?.[1];
   assert.ok(policy, "Content Security Policy meta tag exists");
   assert.match(policy, /default-src 'none'/);
   assert.match(policy, /connect-src 'none'/);

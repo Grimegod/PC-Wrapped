@@ -1,6 +1,7 @@
 import { shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
+import type { RecapPeriod } from "../shared/constants";
 import type { ShareOutcome, ShareTarget } from "../shared/model";
 
 export interface ShareOptions {
@@ -119,12 +120,20 @@ export async function shareCard(options: ShareOptions): Promise<ShareOutcome> {
   return { opened: true, message: route.afterOpen, filePath };
 }
 
+/** How a period is named in the card heading and in the share caption. */
+export const PERIOD_WORD: Record<RecapPeriod, string> = {
+  day: "day",
+  week: "week",
+  month: "month",
+  year: "year"
+};
+
 /** The caption offered with a share page. Aggregate values only, matching what the card shows. */
-export function shareCaption(period: "day" | "week", totalActiveMs: number, archetypeName: string): string {
+export function shareCaption(period: RecapPeriod, totalActiveMs: number, archetypeName: string): string {
   const minutes = Math.max(0, Math.round(totalActiveMs / 60_000));
   const hours = Math.floor(minutes / 60);
   const duration = hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
-  return `My ${period === "day" ? "day" : "week"} on the desktop: ${duration} of app time and I'm "${archetypeName}". Made with PC Wrapped, locally.`;
+  return `My ${PERIOD_WORD[period]} on the desktop: ${duration} of app time and I'm "${archetypeName}". Made with PC Wrapped, locally.`;
 }
 
 /**
