@@ -1,0 +1,38 @@
+=== processes ===
+=== startup entries (registry) ===
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: Wargaming.net Game Center = "C:\ProgramData\Wargaming.net\GameCenter\wgc.exe" --background
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: Adobe Acrobat Synchronizer = "C:\Program Files\Adobe\Acrobat DC\Acrobat\AdobeCollabSync.exe"
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: Discord = "C:\Users\Wally\AppData\Local\Discord\Discord.exe" --processStart Discord.exe --process-start-args "--start-inactive"
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: Opera Browser Assistant = "C:\Users\Wally\AppData\Local\Programs\Opera\assistant\browser_assistant.exe" --autostart
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: MicrosoftEdgeAutoLaunch_BCCA5D72EF250A9EF20F4BB6706537F9 = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-startup-window --win-session-start
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: PC Wrapped = "C:\Users\Wally\Documents\New project\PC-Wrapped\release-msix-test\win-unpacked\PC Wrapped.exe"
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run :: ai.abacus.bot = "C:\Users\Wally\AppData\Local\Programs\@abacus-aidesktop\AbacusBot.exe"
+HKLM:\Software\Microsoft\Windows\CurrentVersion\Run :: SecurityHealth = C:/WINDOWS\system32\SecurityHealthSystray.exe
+HKLM:\Software\Microsoft\Windows\CurrentVersion\Run :: Bdagent = "C:\Program Files\Bitdefender\Bitdefender Security App\bdagent.exe"
+=== startup folder ===
+=== task manager startup approved ===
+
+
+MicrosoftEdgeAutoLaunch_BCCA5D72EF250A9EF20F4BB6706537F9 : {3, 0, 0, 0...}
+OneDrive                                                 : {2, 0, 0, 0...}
+CCleaner Smart Cleaning                                  : {2, 0, 0, 0...}
+Wargaming.net Game Center                                : {3, 0, 0, 0...}
+btweb                                                    : {2, 0, 0, 0...}
+Plex Media Server                                        : {2, 0, 0, 0...}
+Adobe Acrobat Synchronizer                               : {3, 0, 0, 0...}
+Discord                                                  : {3, 0, 0, 0...}
+Opera Browser Assistant                                  : {2, 0, 0, 0...}
+ai.abacus.bot                                            : {3, 0, 0, 0...}
+PC Wrapped                                               : {3, 0, 0, 0...}
+PSPath                                                   : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Softwa
+                                                           re\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved
+                                                           \Run
+PSParentPath                                             : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Softwa
+                                                           re\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved
+PSChildName                                              : Run
+PSDrive                                                  : HKCU
+PSProvider                                               : Microsoft.PowerShell.Core\Registry
+
+
+
+

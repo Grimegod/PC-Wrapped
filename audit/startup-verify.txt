@@ -1,0 +1,13 @@
+=== Run keys now ===
+  Wargaming.net Game Center
+  Adobe Acrobat Synchronizer
+  Discord
+  Opera Browser Assistant
+  MicrosoftEdgeAutoLaunch_BCCA5D72EF250A9EF20F4BB6706537F9
+  PC Wrapped
+  SecurityHealth
+  Bdagent
+=== any abacus anywhere in startup? ===
+  none
+=== startup folder ===
+  empty

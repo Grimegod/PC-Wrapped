@@ -1,0 +1,6 @@
+=== BEFORE ===
+  ai.abacus.bot = "C:\Users\Wally\AppData\Local\Programs\@abacus-aidesktop\AbacusBot.exe"
+REMOVED ai.abacus.bot from HKCU Run
+cleared StartupApproved flag for ai.abacus.bot
+=== AFTER ===
+  no abacus entry left in HKCU Run
