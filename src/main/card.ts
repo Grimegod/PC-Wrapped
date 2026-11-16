@@ -456,6 +456,6 @@ function drawEmptyCard(
 export function comparisonLine(comparison?: PeriodComparison): string | null {
   if (!comparison || comparison.isFirst) return null;
   const pct = Math.round(comparison.ratioChange * 100);
-  if (pct === 0) return "about the same as the period before";
-  return `${pct > 0 ? "+" : "−"}${Math.abs(pct)}% versus the period before`;
+  if (pct === 0) return "about the same";
+  return `${pct > 0 ? "+" : "−"}${Math.abs(pct)}%`;
 }

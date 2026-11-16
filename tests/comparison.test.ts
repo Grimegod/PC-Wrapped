@@ -22,16 +22,16 @@ test("a longer period reads as a rise", () => {
   const result = comparePeriods(stats(4 * HOUR), stats(2 * HOUR));
   assert.equal(result.isFirst, false);
   assert.equal(result.ratioChange, 1);
-  assert.equal(comparisonLine(result), "+100% versus the period before");
+  assert.equal(comparisonLine(result), "+100%");
 });
 
 test("a shorter period reads as a fall with a minus sign", () => {
   const result = comparePeriods(stats(1 * HOUR), stats(2 * HOUR));
-  assert.equal(comparisonLine(result), "−50% versus the period before");
+  assert.equal(comparisonLine(result), "−50%");
 });
 
 test("an equal period says about the same", () => {
-  assert.equal(comparisonLine(comparePeriods(stats(3 * HOUR), stats(3 * HOUR))), "about the same as the period before");
+  assert.equal(comparisonLine(comparePeriods(stats(3 * HOUR), stats(3 * HOUR))), "about the same");
 });
 
 test("with no earlier period there is no line", () => {
