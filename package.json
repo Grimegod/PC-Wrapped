@@ -1,6 +1,6 @@
 {
   "name": "pc-wrapped",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "author": "PCWrapped",
   "description": "A private, local-only activity recap for Windows",

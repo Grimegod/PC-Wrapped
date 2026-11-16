@@ -1,6 +1,7 @@
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
 import path from "node:path";
 import { absurdConversion } from "../shared/conversions";
+import type { PeriodComparison } from "../shared/comparison";
 import { STORY_CARD, SQUARE_CARD, type CardFormat, type RecapPeriod } from "../shared/constants";
 
 /** Card headline for each range. */
@@ -29,6 +30,7 @@ const EMOJI_FONT = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "
 export interface CardViewData {
   stats: RecapStats;
   archetype?: Archetype;
+  comparison?: PeriodComparison;
 }
 
 let emojiFontsRegistered = false;
@@ -138,13 +140,15 @@ export function renderCard(
   day: DayAggregate,
   format: CardFormat,
   period: RecapPeriod,
-  hiddenAppIds: ReadonlySet<string> = new Set()
+  hiddenAppIds: ReadonlySet<string> = new Set(),
+  comparisonParam?: PeriodComparison
 ): Buffer {
   registerCardFonts();
   const size = format === "story" ? STORY_CARD : SQUARE_CARD;
   const canvas = createCanvas(size.width, size.height);
   const ctx = canvas.getContext("2d");
-  const { stats, archetype } = buildCardData(day, hiddenAppIds);
+  const { stats, archetype, comparison: dataComparison } = buildCardData(day, hiddenAppIds);
+  const comparison = comparisonParam ?? dataComparison;
   const compact = format === "square";
   const margin = 64;
   const left = 112;
@@ -207,24 +211,29 @@ export function renderCard(
     compactMetric(ctx, left + tileWidth + gap, 588, tileWidth, "App changes", stats.appChanges.toLocaleString(), 1);
     compactMetric(ctx, left, 700, tileWidth, "Top app", `${Math.round(stats.topAppShare * 100)}% · ${stats.topAppLabel}`, 2);
     compactMetric(ctx, left + tileWidth + gap, 700, tileWidth, "Detour comparison", absurdConversion(stats.totalActiveMs / 60_000), 3);
-    if (topAppRows(day, hiddenAppIds, 1).length) {
+    const squareCast = topAppRows(day, hiddenAppIds, 3);
+    if (squareCast.length) {
       ctx.fillStyle = ink;
-      drawCardText(ctx, "THE CAST", left, 836, 22, 700);
+      drawCardText(ctx, "THE CAST", left, 828, 22, 700);
+      squareCast.forEach((app, index) => {
+        castBar(ctx, left, 852 + index * 40, innerWidth, app.label, app.share, 10, index);
+      });
     }
-    castStrip(ctx, day, hiddenAppIds, left, 856, innerWidth);
   } else {
     characterBox(ctx, left, 500, innerWidth, 260, archetype, false);
     const rows: Array<[string, string]> = [
       ["Longest single-app stretch", formatDuration(stats.longestStreakMs)],
-      ["App changes", stats.appChanges.toLocaleString()],
-      ["Top app", `${stats.topAppLabel} · ${Math.round(stats.topAppShare * 100)}%`],
-      ["A very scientific comparison", absurdConversion(stats.totalActiveMs / 60_000)]
+      ["App changes", stats.appChanges.toLocaleString()]
     ];
+    const versus = comparisonLine(comparison);
+    if (versus) rows.push(["Versus the period before", versus]);
+    rows.push(["Top app", `${stats.topAppLabel} · ${Math.round(stats.topAppShare * 100)}%`]);
+    rows.push(["A very scientific comparison", absurdConversion(stats.totalActiveMs / 60_000)]);
     if (stats.completedInterruptions) rows.push(["Return after a long app visit", `avg ${formatDuration(stats.averageReturnMs)}`]);
     const y0 = 830;
     const step = rows.length > 4 ? 132 : 148;
     rows.forEach(([label, value], index) => metric(ctx, left, y0 + index * step, innerWidth, label, value, index));
-    const cast = topAppRows(day, hiddenAppIds, 3);
+    const cast = topAppRows(day, hiddenAppIds, 5);
     if (cast.length) {
       const castTop = y0 + rows.length * step + 6;
       const slot = Math.min(74, Math.floor((size.height - 150 - castTop - 30) / cast.length));
@@ -465,4 +474,12 @@ function drawEmptyCard(
     34,
     25
   );
+}
+
+/** "+3.7% versus the previous period", or nothing when there is no previous period to compare with. */
+export function comparisonLine(comparison?: PeriodComparison): string | null {
+  if (!comparison || comparison.isFirst) return null;
+  const pct = Math.round(comparison.ratioChange * 100);
+  if (pct === 0) return "about the same as the period before";
+  return `${pct > 0 ? "+" : "−"}${Math.abs(pct)}% versus the period before`;
 }

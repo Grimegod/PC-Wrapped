@@ -1,0 +1,11 @@
+exists: True
+pid=5580
+alive pid=5580 hwnd=66776 title='PCWrapped'
+  also: pid=5464 hwnd=0
+  also: pid=5580 hwnd=66776
+  also: pid=7272 hwnd=0
+  also: pid=7984 hwnd=0
+  also: pid=9684 hwnd=0
+  also: pid=14412 hwnd=0
+  also: pid=16172 hwnd=0
+  also: pid=16276 hwnd=0

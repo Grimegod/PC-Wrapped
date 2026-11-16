@@ -4,9 +4,10 @@ import type { Readable } from "node:stream";
 import fs from "node:fs";
 import path from "node:path";
 import { ActivityAggregator, combineDays, emptyDay, recapStats, removeAppFromHistory } from "../shared/aggregation";
+import { comparePeriods, type PeriodComparison } from "../shared/comparison";
 import { chooseArchetype } from "../shared/archetypes";
 import { APP_ID, APP_NAME, IDLE_THRESHOLD_SECONDS, SAMPLE_INTERVAL_MS, type CardFormat, type RecapPeriod } from "../shared/constants";
-import { dayKeysEndingAt, localDateKey, monthKeys, yearKeysToDate } from "../shared/dates";
+import { dayKeysEndingAt, localDateKey, monthKeys, previousDayKeys, yearKeysToDate } from "../shared/dates";
 import type { AppState, DayAggregate, ShareOutcome, ShareTarget } from "../shared/model";
 import { renderCard, isCardFormat } from "./card";
 import { historyToCsv } from "./csv";
@@ -48,6 +49,16 @@ function keysForPeriod(period: RecapPeriod, now = Date.now()): string[] {
 
 function aggregateForPeriod(period: RecapPeriod): DayAggregate {
   return combineDays(keysForPeriod(period).map((key) => store.history[key] ?? emptyDay()));
+}
+
+/** The same length of time immediately before the current period, for the "versus" line. */
+function previousAggregateForPeriod(period: RecapPeriod, now = Date.now()): DayAggregate {
+  const count = period === "day" ? 1 : period === "week" ? 7 : period === "month" ? 30 : 365;
+  return combineDays(previousDayKeys(now, count).map((key) => store.history[key] ?? emptyDay()));
+}
+
+function comparisonForPeriod(period: RecapPeriod): PeriodComparison {
+  return comparePeriods(recapStats(aggregateForPeriod(period)), recapStats(previousAggregateForPeriod(period)));
 }
 
 function currentState(): AppState {
@@ -295,7 +306,13 @@ async function askStartupPreferenceOnce(): Promise<void> {
 }
 
 async function previewCard(format: CardFormat, period: RecapPeriod): Promise<string> {
-  const buffer = renderCard(aggregateForPeriod(period), format, period, new Set(Object.keys(store.settings.hiddenApps)));
+  const buffer = renderCard(
+    aggregateForPeriod(period),
+    format,
+    period,
+    new Set(Object.keys(store.settings.hiddenApps)),
+    comparisonForPeriod(period)
+  );
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
 
@@ -411,7 +428,13 @@ handle("card:preview", async (event, format: CardFormat, period: RecapPeriod) =>
 });
 handle("card:save", async (event, format: CardFormat, period: RecapPeriod) => {
   if (!isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported card option.");
-  const buffer = renderCard(aggregateForPeriod(period), format, period, new Set(Object.keys(store.settings.hiddenApps)));
+  const buffer = renderCard(
+    aggregateForPeriod(period),
+    format,
+    period,
+    new Set(Object.keys(store.settings.hiddenApps)),
+    comparisonForPeriod(period)
+  );
   const result = await dialog.showSaveDialog(mainWindow!, {
     title: "Save recap card",
     defaultPath: `pc-wrapped-${period}-${format}.png`,

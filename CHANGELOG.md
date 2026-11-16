@@ -2,6 +2,19 @@
 
 All notable changes to PCWrapped. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-11-16
+
+### Added
+
+- Recap cards compare the period with the one before it: "Versus the period before: +37%", or "about the same" when nothing moved. Shown only when there is an earlier period to compare against.
+- The story card lists up to five apps instead of three.
+
+### Changed
+
+- The square card shows three apps by name with their share bars, instead of one unlabelled strip.
+- The app is called PCWrapped everywhere: window, tray, installer, login item and copy.
+- Soft turquoise and gold interface, replacing the cocoa palette.
+
 ## [1.1.0] — 2026-11-15
 
 Two more ranges and a way out with your data.

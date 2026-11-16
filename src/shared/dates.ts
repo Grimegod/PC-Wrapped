@@ -49,3 +49,12 @@ export function dayKeysEndingAt(timestamp: number, days: number): string[] {
   }
   return keys;
 }
+
+/** The same-length window immediately before the one that ends now, for a "versus last time" line. */
+export function previousDayKeys(now: number, count: number): string[] {
+  const days: string[] = [];
+  for (let index = count; index < count * 2; index += 1) {
+    days.push(localDateKey(now - index * 24 * 60 * 60 * 1000));
+  }
+  return days;
+}
