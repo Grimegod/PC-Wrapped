@@ -1,11 +1,13 @@
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
 import path from "node:path";
-import { absurdConversion } from "../shared/conversions";
+import { conversionText } from "../shared/conversions";
+import type { Translator } from "../shared/i18n";
+import { englishTranslator } from "./locales";
 import type { PeriodComparison } from "../shared/comparison";
 import { STORY_CARD, SQUARE_CARD, type CardFormat, type RecapPeriod } from "../shared/constants";
 
-/** Card headline for each range. */
-const PERIOD_HEADING: Record<RecapPeriod, string> = { day: "TODAY", week: "THIS WEEK", month: "THIS MONTH", year: "THIS YEAR" };
+/** The language the card being drawn is written in; set by renderCard for its helpers. */
+let tr: Translator = englishTranslator();
 import { chooseArchetype } from "../shared/archetypes";
 import { recapStats } from "../shared/aggregation";
 import type { Archetype, DayAggregate, RecapStats } from "../shared/model";
@@ -23,7 +25,9 @@ const grape = "#8e7bff";
 const pink = "#ff6fb5";
 
 /** Card text face, with a colour emoji fallback so archetype emoji are not drawn as empty boxes. */
-const CARD_FONT = `"Segoe UI", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif`;
+// Segoe UI covers Latin, Greek, Cyrillic, Arabic and Hebrew; the faces after it are the fonts Windows
+// ships for Thai, Japanese, Chinese and Korean, so every catalog's text has glyphs on the card.
+const CARD_FONT = `"Segoe UI", "Leelawadee UI", "Yu Gothic UI", "Microsoft YaHei UI", "Microsoft JhengHei UI", "Malgun Gothic", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif`;
 /** Emoji-only face: Arial cannot draw emoji, so every emoji run is drawn with this face instead. */
 const EMOJI_FONT = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif`;
 
@@ -110,22 +114,41 @@ function cardFont(emoji: boolean, size: number, weight: number): string {
 }
 
 /** Build the only app-specific data allowed to reach card rendering. Hidden IDs and labels are omitted. */
-export function buildCardData(day: DayAggregate, hiddenAppIds: ReadonlySet<string> = new Set()): CardViewData {
+export function buildCardData(
+  day: DayAggregate,
+  hiddenAppIds: ReadonlySet<string> = new Set(),
+  translator: Translator = englishTranslator()
+): CardViewData {
   const stats = recapStats(day);
   const topApp = Object.entries(day.apps).sort((a, b) => b[1].activeMs - a[1].activeMs)[0];
-  if (topApp && hiddenAppIds.has(topApp[0])) stats.topAppLabel = "Hidden app";
-  return { stats, archetype: stats.totalActiveMs > 0 ? chooseArchetype(stats) : undefined };
+  if (topApp && hiddenAppIds.has(topApp[0])) stats.topAppLabel = translator.t("cardImage.hiddenApp");
+  if (!topApp) stats.topAppLabel = translator.t("cardImage.noApp");
+  return { stats, archetype: stats.totalActiveMs > 0 ? localizeArchetype(chooseArchetype(stats), translator) : undefined };
 }
 
-/** The three apps with the most active time, as label and share only; hidden apps lose their name. */
-export function topAppRows(day: DayAggregate, hiddenAppIds: ReadonlySet<string>, count: number): Array<{ label: string; share: number }> {
+/** An archetype with its name and line in the reader's language. */
+export function localizeArchetype(archetype: Archetype, translator: Translator): Archetype {
+  return {
+    ...archetype,
+    name: translator.t(`archetype.${archetype.id}.name`),
+    line: translator.t(`archetype.${archetype.id}.line`)
+  };
+}
+
+/** The `count` apps with the most active time, as label and share only; hidden apps lose their name. */
+export function topAppRows(
+  day: DayAggregate,
+  hiddenAppIds: ReadonlySet<string>,
+  count: number,
+  translator: Translator = englishTranslator()
+): Array<{ label: string; share: number }> {
   const total = Object.values(day.apps).reduce((sum, app) => sum + app.activeMs, 0);
   if (!total) return [];
   return Object.entries(day.apps)
     .filter(([, app]) => app.activeMs > 0)
     .sort((a, b) => b[1].activeMs - a[1].activeMs)
     .slice(0, count)
-    .map(([id, app]) => ({ label: hiddenAppIds.has(id) ? "Hidden app" : app.label, share: app.activeMs / total }));
+    .map(([id, app]) => ({ label: hiddenAppIds.has(id) ? translator.t("cardImage.hiddenApp") : app.label, share: app.activeMs / total }));
 }
 
 /** Card formats a recap can be rendered at, shared by the renderer, the IPC layer and the tests. */
@@ -141,13 +164,15 @@ export function renderCard(
   format: CardFormat,
   period: RecapPeriod,
   hiddenAppIds: ReadonlySet<string> = new Set(),
-  comparisonParam?: PeriodComparison
+  comparisonParam?: PeriodComparison,
+  translator: Translator = englishTranslator()
 ): Buffer {
   registerCardFonts();
+  tr = translator;
   const size = format === "story" ? STORY_CARD : SQUARE_CARD;
   const canvas = createCanvas(size.width, size.height);
   const ctx = canvas.getContext("2d");
-  const { stats, archetype, comparison: dataComparison } = buildCardData(day, hiddenAppIds);
+  const { stats, archetype, comparison: dataComparison } = buildCardData(day, hiddenAppIds, translator);
   const comparison = comparisonParam ?? dataComparison;
   const compact = format === "square";
   const margin = 64;
@@ -189,7 +214,7 @@ export function renderCard(
   ctx.fillStyle = ink;
   drawCardText(ctx, "PC WRAPPED", left, compact ? 150 : 170, 34, 700);
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, `${PERIOD_HEADING[period]} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
+  drawCardText(ctx, `${tr.t(`cardImage.heading.${period}`)} · ${tr.t("brand.eyebrow")}`, left, compact ? 200 : 226, 24);
 
   const headline = ctx.createLinearGradient(left, 0, left + 520, 0);
   headline.addColorStop(0, coral);
@@ -198,7 +223,7 @@ export function renderCard(
   ctx.fillStyle = headline;
   drawCardText(ctx, formatDuration(stats.totalActiveMs), left, compact ? 312 : 396, compact ? 68 : 78, 700);
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, "in app time, with the breaks between chapters left out", left, compact ? 356 : 452, compact ? 26 : 28);
+  drawCardText(ctx, tr.t("cardImage.subhead"), left, compact ? 356 : 452, compact ? 26 : 28);
 
   if (compact) {
     // The square card has room for two metric rows, a labelled cast strip and the footer only:
@@ -207,14 +232,22 @@ export function renderCard(
     characterBox(ctx, left, boxY, innerWidth, 172, archetype, true);
     const tileWidth = 420;
     const gap = 36;
-    compactMetric(ctx, left, 588, tileWidth, "Longest stretch", formatDuration(stats.longestStreakMs), 0);
-    compactMetric(ctx, left + tileWidth + gap, 588, tileWidth, "App changes", stats.appChanges.toLocaleString(), 1);
-    compactMetric(ctx, left, 700, tileWidth, "Top app", `${Math.round(stats.topAppShare * 100)}% · ${stats.topAppLabel}`, 2);
-    compactMetric(ctx, left + tileWidth + gap, 700, tileWidth, "Detour comparison", absurdConversion(stats.totalActiveMs / 60_000), 3);
-    const squareCast = topAppRows(day, hiddenAppIds, 3);
+    compactMetric(ctx, left, 588, tileWidth, tr.t("cardImage.longestShort"), formatDuration(stats.longestStreakMs), 0);
+    compactMetric(ctx, left + tileWidth + gap, 588, tileWidth, tr.t("metric.changes"), tr.number(stats.appChanges), 1);
+    compactMetric(ctx, left, 700, tileWidth, tr.t("cardImage.topApp"), `${Math.round(stats.topAppShare * 100)}% · ${stats.topAppLabel}`, 2);
+    compactMetric(
+      ctx,
+      left + tileWidth + gap,
+      700,
+      tileWidth,
+      tr.t("cardImage.detour"),
+      conversionText(stats.totalActiveMs / 60_000, tr),
+      3
+    );
+    const squareCast = topAppRows(day, hiddenAppIds, 3, tr);
     if (squareCast.length) {
       ctx.fillStyle = ink;
-      drawCardText(ctx, "THE CAST", left, 828, 22, 700);
+      drawCardText(ctx, tr.t("apps.eyebrow"), left, 828, 22, 700);
       squareCast.forEach((app, index) => {
         castBar(ctx, left, 852 + index * 40, innerWidth, app.label, app.share, 10, index);
       });
@@ -222,23 +255,24 @@ export function renderCard(
   } else {
     characterBox(ctx, left, 500, innerWidth, 260, archetype, false);
     const rows: Array<[string, string]> = [
-      ["Longest single-app stretch", formatDuration(stats.longestStreakMs)],
-      ["App changes", stats.appChanges.toLocaleString()]
+      [tr.t("metric.longest"), formatDuration(stats.longestStreakMs)],
+      [tr.t("metric.changes"), tr.number(stats.appChanges)]
     ];
     const versus = comparisonLine(comparison);
-    if (versus) rows.push(["Versus the period before", versus]);
-    rows.push(["Top app", `${stats.topAppLabel} · ${Math.round(stats.topAppShare * 100)}%`]);
-    rows.push(["A very scientific comparison", absurdConversion(stats.totalActiveMs / 60_000)]);
-    if (stats.completedInterruptions) rows.push(["Return after a long app visit", `avg ${formatDuration(stats.averageReturnMs)}`]);
+    if (versus) rows.push([comparison?.label ?? tr.t("cardImage.versus"), versus]);
+    rows.push([tr.t("cardImage.topApp"), `${stats.topAppLabel} · ${Math.round(stats.topAppShare * 100)}%`]);
+    rows.push([tr.t("conversion.label"), conversionText(stats.totalActiveMs / 60_000, tr)]);
+    if (stats.completedInterruptions)
+      rows.push([tr.t("return.title"), tr.t("cardImage.average", { duration: formatDuration(stats.averageReturnMs) })]);
     const y0 = 830;
     const step = rows.length > 4 ? 132 : 148;
     rows.forEach(([label, value], index) => metric(ctx, left, y0 + index * step, innerWidth, label, value, index));
-    const cast = topAppRows(day, hiddenAppIds, 5);
+    const cast = topAppRows(day, hiddenAppIds, 5, tr);
     if (cast.length) {
       const castTop = y0 + rows.length * step + 6;
       const slot = Math.min(74, Math.floor((size.height - 150 - castTop - 30) / cast.length));
       ctx.fillStyle = ink;
-      drawCardText(ctx, "THE CAST", left, castTop, 24, 700);
+      drawCardText(ctx, tr.t("apps.eyebrow"), left, castTop, 24, 700);
       cast.forEach((app, index) =>
         castBar(ctx, left, castTop + 42 + index * slot, innerWidth, app.label, app.share, Math.min(12, slot - 28), index)
       );
@@ -246,17 +280,24 @@ export function renderCard(
   }
 
   const bottom = size.height - (compact ? 78 : 82);
+  const tagline = tr.t("cardImage.tagline");
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, "Local recap · no titles or screenshots", left, bottom - (compact ? 30 : 36), 20);
+  if (compact) {
+    // The square card has no spare line above the tagline: the third app bar ends there. The privacy
+    // footer shares the tagline's line, right-aligned, and is shortened if a language needs more room.
+    const room = innerWidth - measureCardText(ctx, tagline, 22, 700) - 32;
+    const footer = fitCardText(ctx, tr.t("cardImage.footer"), room, 20);
+    drawCardText(ctx, footer, left + innerWidth - measureCardText(ctx, footer, 20), bottom, 20);
+  } else {
+    drawCardText(ctx, tr.t("cardImage.footer"), left, bottom - 36, 20);
+  }
   ctx.fillStyle = coral;
-  drawCardText(ctx, "A little desktop folklore.", left, bottom, 22, 700);
+  drawCardText(ctx, tagline, left, bottom, 22, 700);
   return canvas.toBuffer("image/png");
 }
 
 function formatDuration(ms: number): string {
-  const minutes = Math.max(0, Math.round(ms / 60_000));
-  const hours = Math.floor(minutes / 60);
-  return hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+  return tr.duration(ms);
 }
 
 function metric(ctx: SKRSContext2D, x: number, y: number, maxWidth: number, label: string, value: string, index = 0): void {
@@ -325,10 +366,10 @@ function characterBox(
   const innerX = x + 36;
   const innerWidth = width - 72;
   ctx.fillStyle = grape;
-  drawCardText(ctx, "YOUR DESKTOP CHARACTER", innerX + 8, y + 48, 27, 700);
+  drawCardText(ctx, tr.t("character.eyebrow"), innerX + 8, y + 48, 27, 700);
   if (!archetype) {
     ctx.fillStyle = ink;
-    drawCardText(ctx, "Your character appears after some tracking.", innerX + 8, y + (compact ? 110 : 132), 29, 600);
+    drawCardText(ctx, tr.t("character.placeholder"), innerX + 8, y + (compact ? 110 : 132), 29, 600);
     return;
   }
   ctx.fillStyle = ink;
@@ -393,17 +434,29 @@ function roundRect(ctx: SKRSContext2D, x: number, y: number, width: number, heig
   ctx.roundRect(x, y, width, height, radius);
 }
 
+/** Split text where a line may break: between words, or between characters in Japanese, Chinese and Thai. */
+function breakableSegments(text: string): string[] {
+  if (typeof Intl.Segmenter === "function") {
+    try {
+      return [...new Intl.Segmenter(tr.locale, { granularity: "word" }).segment(text)].map((part) => part.segment);
+    } catch {
+      /* Fall through to spaces. */
+    }
+  }
+  return text.split(/(\s+)/);
+}
+
 function wrapText(ctx: SKRSContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, size: number): void {
   let line = "";
-  for (const word of text.split(" ")) {
-    const next = line ? `${line} ${word}` : word;
-    if (measureCardText(ctx, next, size) > maxWidth && line) {
-      drawCardText(ctx, line, x, y, size);
+  for (const segment of breakableSegments(text)) {
+    const next = line + segment;
+    if (measureCardText(ctx, next.trimEnd(), size) > maxWidth && line.trim()) {
+      drawCardText(ctx, line.trimEnd(), x, y, size);
       y += lineHeight;
-      line = word;
+      line = segment.trimStart();
     } else line = next;
   }
-  if (line) drawCardText(ctx, line, x, y, size);
+  if (line.trim()) drawCardText(ctx, line.trimEnd(), x, y, size);
 }
 
 /** A deliberately quiet card for a day or week with no tracked time; it never shows zeroed metrics. */
@@ -426,7 +479,7 @@ function drawEmptyCard(
   ctx.fillStyle = ink;
   drawCardText(ctx, "PC WRAPPED", left, compact ? 150 : 170, 34, 700);
   ctx.fillStyle = inkSoft;
-  drawCardText(ctx, `${PERIOD_HEADING[period]} · YOUR DESKTOP, RECAP`, left, compact ? 200 : 226, 24);
+  drawCardText(ctx, `${tr.t(`cardImage.heading.${period}`)} · ${tr.t("brand.eyebrow")}`, left, compact ? 200 : 226, 24);
 
   const panel = ctx.createLinearGradient(left, 0, left + innerWidth, 0);
   panel.addColorStop(0, "#ede8ff");
@@ -439,23 +492,15 @@ function drawEmptyCard(
   roundRect(ctx, left, compact ? 300 : 360, 12, compact ? 240 : 280, 6);
   ctx.fill();
   ctx.fillStyle = ink;
-  drawCardText(ctx, "Nothing tracked yet", left + 44, compact ? 384 : 444, compact ? 40 : 46, 700);
+  drawCardText(ctx, tr.t("cardImage.emptyTitle"), left + 44, compact ? 384 : 444, compact ? 40 : 46, 700);
   ctx.fillStyle = inkSoft;
-  wrapText(
-    ctx,
-    "Start tracking to find out where the hours wander. Your character, your numbers and your cast appear here once there is something to report.",
-    left + 44,
-    compact ? 432 : 500,
-    innerWidth - 84,
-    34,
-    25
-  );
+  wrapText(ctx, tr.t("cardImage.emptyText"), left + 44, compact ? 432 : 500, innerWidth - 84, 34, 25);
 }
 
 /** "+3.7% versus the previous period", or nothing when there is no previous period to compare with. */
-export function comparisonLine(comparison?: PeriodComparison): string | null {
+export function comparisonLine(comparison?: PeriodComparison, translator: Translator = tr): string | null {
   if (!comparison || comparison.isFirst) return null;
   const pct = Math.round(comparison.ratioChange * 100);
-  if (pct === 0) return "about the same";
+  if (pct === 0) return translator.t("cardImage.aboutSame");
   return `${pct > 0 ? "+" : "−"}${Math.abs(pct)}%`;
 }

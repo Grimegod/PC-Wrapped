@@ -15,3 +15,16 @@ test("renderer CSP uses a deny-by-default policy and blocks remote connections",
   assert.match(policy, /form-action 'none'/);
   assert.doesNotMatch(policy, /https?:|wss?:/i);
 });
+
+test("the activity adapter never reads window titles, keystrokes or screen contents", () => {
+  const script = fs.readFileSync(path.join(process.cwd(), "scripts", "tracker.ps1"), "utf8");
+  assert.doesNotMatch(script, /GetWindowText|MainWindowTitle|GetAsyncKeyState|GetKeyboardState|SetWindowsHookEx|BitBlt|CopyFromScreen/);
+  assert.doesNotMatch(script, /ExecutionPolicy/i);
+  assert.doesNotMatch(script, /Invoke-WebRequest|Invoke-RestMethod|Net\.WebClient|HttpClient/i);
+});
+
+test("the activity adapter writes UTF-8 so app names keep their accents and symbols", () => {
+  const script = fs.readFileSync(path.join(process.cwd(), "scripts", "tracker.ps1"), "utf8");
+  assert.match(script, /\[Console\]::OutputEncoding\s*=\s*New-Object System\.Text\.UTF8Encoding/);
+  assert.ok(script.indexOf("OutputEncoding") < script.indexOf("ConvertTo-Json"), "set before anything is written");
+});

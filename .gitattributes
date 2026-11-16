@@ -6,3 +6,5 @@
 *.msix binary
 *.msixupload binary
 *.pfx binary
+*.cmd text eol=crlf
+*.webp binary

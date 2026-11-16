@@ -14,3 +14,6 @@ _*.png
 *.tsbuildinfo
 audit/*-source/
 audit/*-preview.png
+/release-test/
+/audit/wack-report-*.xml
+/scripts/dev/commit-message.txt

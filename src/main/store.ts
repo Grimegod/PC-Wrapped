@@ -1,16 +1,35 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pruneHistory } from "../shared/aggregation";
-import type { AppPreferenceMap, History } from "../shared/model";
+import type { AppPreferenceMap, History, ThemeChoice } from "../shared/model";
 
 export interface Settings {
   startAtLogin: boolean;
   startupPrompted: boolean;
+  /** Opt-in: when the app starts, resume tracking if it was on when the app last closed. */
+  resumeTracking: boolean;
+  /** Whether tracking was on when the app last saved its settings; read only when resumeTracking is on. */
+  wasTracking: boolean;
+  /** Count full-screen games and videos as active even without keyboard or mouse input. */
+  countFullscreen: boolean;
+  theme: ThemeChoice;
+  /** "auto" (follow Windows) or a catalog code such as "ro". */
+  language: string;
   excludedApps: AppPreferenceMap;
   hiddenApps: AppPreferenceMap;
 }
 
-const DEFAULT_SETTINGS: Settings = { startAtLogin: false, startupPrompted: false, excludedApps: {}, hiddenApps: {} };
+const DEFAULT_SETTINGS: Settings = {
+  startAtLogin: false,
+  startupPrompted: false,
+  resumeTracking: false,
+  wasTracking: false,
+  countFullscreen: true,
+  theme: "light",
+  language: "auto",
+  excludedApps: {},
+  hiddenApps: {}
+};
 
 export class LocalStore {
   readonly historyPath: string;
@@ -45,6 +64,14 @@ export class LocalStore {
         this.settings = {
           startAtLogin: settings.startAtLogin === true,
           startupPrompted: settings.startupPrompted === true,
+          resumeTracking: settings.resumeTracking === true,
+          wasTracking: settings.wasTracking === true,
+          countFullscreen: settings.countFullscreen !== false,
+          theme: isThemeChoice(settings.theme) ? settings.theme : "light",
+          language:
+            typeof settings.language === "string" && /^(auto|[A-Za-z]{2,3}(-[A-Za-z0-9]{2,4})?)$/.test(settings.language)
+              ? settings.language
+              : "auto",
           excludedApps: normalizePreferenceMap(settings.excludedApps),
           hiddenApps: normalizePreferenceMap(settings.hiddenApps)
         };
@@ -88,6 +115,10 @@ export class LocalStore {
       throw error;
     }
   }
+}
+
+export function isThemeChoice(value: unknown): value is ThemeChoice {
+  return value === "light" || value === "dark" || value === "system";
 }
 
 function normalizePreferenceMap(value: unknown): AppPreferenceMap {

@@ -24,14 +24,17 @@
               <circle class="atom-electron" cx="56" cy="32" r="3" /></svg
           ></span>
           <div>
-            <p class="eyebrow">YOUR DESKTOP, RECAP</p>
+            <p class="eyebrow" data-i18n="brand.eyebrow">YOUR DESKTOP, RECAP</p>
             <h1>PC Wrapped</h1>
           </div>
         </div>
         <div class="tracking-status">
-          <span id="status-dot"></span><span id="status-text">Tracking is paused</span
-          ><button id="create-card-button" class="secondary-button">Create my card</button
-          ><button id="settings-button" class="quiet-button">Settings</button
+          <label class="language-picker" data-i18n-title="settings.languageNote" title="Chosen from your Windows language the first time. Change it here at any time."
+            ><span class="language-globe" aria-hidden="true">🌐</span
+            ><select id="language-select" class="theme-select" aria-label="Language" data-i18n-aria-label="settings.language"></select></label
+          ><span id="status-dot"></span><span id="status-text">Tracking is paused</span
+          ><button id="create-card-button" class="secondary-button" data-i18n="button.createCard">Create my card</button
+          ><button id="settings-button" class="quiet-button" data-i18n="button.settings">Settings</button
           ><button id="tracking-button" class="primary-button">Start tracking</button>
         </div>
       </header>
@@ -40,33 +43,33 @@
         <div id="warning" class="warning" role="status" hidden></div>
         <section class="hero-panel">
           <div class="hero-copy">
-            <p class="eyebrow">A LITTLE DESKTOP FOLKLORE</p>
-            <h2>Where did the hours wander?</h2>
-            <p class="hero-subtitle">A private recap of the apps that had the floor today.</p>
+            <p class="eyebrow" data-i18n="hero.eyebrow">A LITTLE DESKTOP FOLKLORE</p>
+            <h2 data-i18n="hero.title">Where did the hours wander?</h2>
+            <p class="hero-subtitle" data-i18n="hero.subtitle">A private recap of the apps that had the floor.</p>
           </div>
-          <div class="period-switch" role="tablist" aria-label="Recap period">
-            <button class="period-button active" data-period="day" role="tab" aria-selected="true">Today</button
-            ><button class="period-button" data-period="week" role="tab" aria-selected="false">This week</button
-            ><button class="period-button" data-period="month" role="tab" aria-selected="false">This month</button
-            ><button class="period-button" data-period="year" role="tab" aria-selected="false">This year</button>
+          <div class="period-switch" role="tablist" aria-label="Recap period" data-i18n-aria-label="period.aria">
+            <button class="period-button active" data-period="day" role="tab" aria-selected="true" data-i18n="period.day">Today</button
+            ><button class="period-button" data-period="week" role="tab" aria-selected="false" tabindex="-1" data-i18n="period.week">Last 7 days</button
+            ><button class="period-button" data-period="month" role="tab" aria-selected="false" tabindex="-1" data-i18n="period.month">This month</button
+            ><button class="period-button" data-period="year" role="tab" aria-selected="false" tabindex="-1" data-i18n="period.year">This year</button>
           </div>
         </section>
 
-        <section class="metrics-grid" aria-label="Activity summary">
+        <section class="metrics-grid" aria-label="Activity summary" data-i18n-aria-label="metrics.aria">
           <article class="metric-card metric-purple">
             <span class="metric-icon">◷</span>
-            <p class="metric-label">App time</p>
-            <strong id="active-time">0m</strong><small>while your screen was active</small>
+            <p class="metric-label" data-i18n="metric.appTime">App time</p>
+            <strong id="active-time">0m</strong><small data-i18n="metric.appTimeNote">while your screen was active</small>
           </article>
           <article class="metric-card metric-peach">
             <span class="metric-icon">〰</span>
-            <p class="metric-label">Longest single-app stretch</p>
-            <strong id="longest-streak">0m</strong><small>one app, no idle breaks</small>
+            <p class="metric-label" data-i18n="metric.longest">Longest single-app stretch</p>
+            <strong id="longest-streak">0m</strong><small data-i18n="metric.longestNote">one app, no idle breaks</small>
           </article>
           <article class="metric-card metric-blue">
             <span class="metric-icon">⇄</span>
-            <p class="metric-label">App changes</p>
-            <strong id="app-changes">0</strong><small>the desktop's plot twists</small>
+            <p class="metric-label" data-i18n="metric.changes">App changes</p>
+            <strong id="app-changes">0</strong><small data-i18n="metric.changesNote">the desktop's plot twists</small>
           </article>
         </section>
 
@@ -74,8 +77,8 @@
           <article class="panel apps-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">THE CAST</p>
-                <h2>Apps on stage</h2>
+                <p class="eyebrow" data-i18n="apps.eyebrow">THE CAST</p>
+                <h2 data-i18n="apps.title">Apps on stage</h2>
               </div>
               <span id="app-count" class="count-pill">0 apps</span>
             </div>
@@ -89,121 +92,138 @@
             <div class="interruption-note">
               <span>↩</span>
               <p>
-                <strong>Return after a long app visit</strong><br /><span id="interruption-copy"
+                <strong data-i18n="return.title">Return after a long app visit</strong><br /><span id="interruption-copy"
                   >Time from an app visit of at least 10 minutes until you return and stay for 30 seconds. Idle time is excluded.</span
                 >
               </p>
             </div>
           </article>
 
-          <article class="panel character-panel">
-            <p class="eyebrow">TODAY'S DESKTOP CHARACTER</p>
-            <div id="archetype-emoji" class="character-emoji" hidden></div>
-            <h2 id="archetype-name">Your character appears after some tracking.</h2>
-            <p id="archetype-line" class="character-line" hidden></p>
-            <div class="character-divider"></div>
-            <p class="conversion-label">A very scientific comparison</p>
-            <p id="conversion" class="conversion">🎬 A feature film is still loading.</p>
-            <p id="return-summary" class="return-summary">No confirmed long-visit returns yet.</p>
-          </article>
-        </section>
-
-        <section id="card-section" class="panel export-panel" tabindex="-1">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">READY FOR YOUR STORY</p>
-              <h2>Make a recap card</h2>
-              <p class="panel-subtitle">A local PNG, sized for sharing. Preview before saving.</p>
-            </div>
-            <span class="local-badge">LOCAL PNG</span>
-          </div>
-          <div class="export-controls">
-            <label
-              >Card shape<select id="card-format">
-                <option value="story">Story · 1080 × 1920</option>
-                <option value="square">Square · 1080 × 1080</option>
-              </select></label
-            ><button id="preview-button" class="secondary-button">Preview card</button
-            ><button id="save-button" class="primary-button">Save PNG</button>
-          </div>
-          <p id="card-empty-message" class="card-empty-message" hidden>Track for a while to create a card</p>
-          <div id="preview-wrap" class="preview-wrap" hidden>
-            <img id="card-preview" alt="Preview of your PC Wrapped recap card" />
-            <div>
-              <p id="export-message" aria-live="polite"></p>
-              <p id="share-hint" class="share-hint">
-                Sharing opens the site in your browser. PC Wrapped never uploads your card; you attach the saved PNG there yourself.
-              </p>
-            </div>
-          </div>
-          <div id="share-row" class="share-row" hidden>
-            <p class="share-label">Share the saved PNG</p>
-            <div class="share-buttons">
-              <button class="share-button" type="button" data-share="whatsapp">WhatsApp</button>
-              <button class="share-button" type="button" data-share="telegram">Telegram</button>
-              <button class="share-button" type="button" data-share="instagram" title="Copies the PNG to the clipboard for Instagram">
-                Instagram
-              </button>
-              <button class="share-button" type="button" data-share="facebook" title="Opens Facebook with the saved PNG to attach">
-                Facebook
-              </button>
-              <button class="share-button" type="button" data-share="messenger">Messenger</button>
-              <button class="share-button" type="button" data-share="linkedin" title="Opens LinkedIn with the saved PNG to attach">
-                LinkedIn
-              </button>
-              <button class="share-button" type="button" data-share="tiktok" title="Copies the PNG to the clipboard for TikTok">
-                TikTok
-              </button>
-              <button class="share-button" type="button" data-share="snapchat" title="Copies the PNG to the clipboard for Snapchat">
-                Snapchat
-              </button>
-              <button class="share-button" type="button" data-share="x" title="Opens X with your caption; attach the saved PNG">X</button>
-            </div>
-            <p id="share-message" class="share-message" role="status" aria-live="polite"></p>
+          <div class="side-column">
+            <article class="panel character-panel">
+              <p class="eyebrow" data-i18n="character.eyebrow">YOUR DESKTOP CHARACTER</p>
+              <div id="archetype-emoji" class="character-emoji" hidden></div>
+              <h2 id="archetype-name">Your character appears after some tracking.</h2>
+              <p id="archetype-line" class="character-line" hidden></p>
+              <div class="character-divider"></div>
+              <p class="conversion-label" data-i18n="conversion.label">A very scientific comparison</p>
+              <p id="conversion" class="conversion">🎬 A feature film is still loading.</p>
+              <p id="return-summary" class="return-summary">No confirmed long-visit returns yet.</p>
+            </article>
+            <section id="card-section" class="panel export-panel" tabindex="-1">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow" data-i18n="card.eyebrow">READY FOR YOUR STORY</p>
+                  <h2 data-i18n="card.title">Make a recap card</h2>
+                  <p class="panel-subtitle" data-i18n="card.subtitle">A local PNG, sized for sharing. Preview before saving.</p>
+                </div>
+                <span class="local-badge" data-i18n="card.badge">LOCAL PNG</span>
+              </div>
+              <div class="export-controls">
+                <label
+                  ><span data-i18n="card.shape">Card shape</span><select id="card-format">
+                    <option value="story" data-i18n="card.story">Story · 1080 × 1920</option>
+                    <option value="square" data-i18n="card.square">Square · 1080 × 1080</option>
+                  </select></label
+                ><button id="preview-button" class="secondary-button" data-i18n="card.preview">Preview card</button
+                ><button id="save-button" class="primary-button" data-i18n="card.save">Save PNG</button>
+              </div>
+              <p id="card-empty-message" class="card-empty-message" data-i18n="card.empty" hidden>Track for a while to create a card</p>
+              <p id="card-error" class="card-empty-message" role="alert" hidden></p>
+              <div id="preview-wrap" class="preview-wrap" hidden>
+                <img id="card-preview" alt="Preview of your PC Wrapped recap card" data-i18n-alt="card.previewAlt" />
+                <div>
+                  <p id="export-message" aria-live="polite"></p>
+                  <p id="share-hint" class="share-hint" data-i18n="share.hint">
+                    Sharing opens the site in your browser or copies the card. PC Wrapped never uploads your card; you attach the saved PNG yourself.
+                  </p>
+                </div>
+              </div>
+              <div id="share-row" class="share-row" hidden>
+                <p class="share-label" data-i18n="share.label">Share the saved PNG</p>
+                <div class="share-buttons">
+                  <button class="share-button" type="button" data-share="whatsapp" data-i18n-title="share.tipPage">WhatsApp</button>
+                  <button class="share-button" type="button" data-share="telegram" data-i18n-title="share.tipPage">Telegram</button>
+                  <button class="share-button" type="button" data-share="instagram" data-i18n-title="share.tipClipboard">Instagram</button>
+                  <button class="share-button" type="button" data-share="facebook" data-i18n-title="share.tipClipboard">Facebook</button>
+                  <button class="share-button" type="button" data-share="messenger" data-i18n-title="share.tipClipboard">Messenger</button>
+                  <button class="share-button" type="button" data-share="linkedin" data-i18n-title="share.tipPage">LinkedIn</button>
+                  <button class="share-button" type="button" data-share="tiktok" data-i18n-title="share.tipClipboard">TikTok</button>
+                  <button class="share-button" type="button" data-share="snapchat" data-i18n-title="share.tipClipboard">Snapchat</button>
+                  <button class="share-button" type="button" data-share="x" data-i18n-title="share.tipPage">X</button>
+                </div>
+                <p id="share-message" class="share-message" role="status" aria-live="polite"></p>
+              </div>
+            </section>
           </div>
         </section>
 
         <section id="settings-section" class="panel settings-panel" tabindex="-1">
           <div class="settings-heading">
-            <p class="eyebrow">YOUR PREFERENCES</p>
-            <h2>Settings & privacy</h2>
+            <p class="eyebrow" data-i18n="settings.eyebrow">YOUR PREFERENCES</p>
+            <h2 data-i18n="settings.title">Settings &amp; privacy</h2>
           </div>
           <label class="toggle-row"
-            ><span><strong>Open with Windows</strong><small>Opens the app only; tracking still waits for your choice.</small></span
+            ><span><strong data-i18n="settings.startup">Open with Windows</strong><small data-i18n="settings.startupNote">Opens the app only; tracking still waits for your choice.</small></span
             ><input id="startup-toggle" type="checkbox" /><span class="toggle-ui"></span
+          ></label>
+          <label class="toggle-row"
+            ><span
+              ><strong data-i18n="settings.resume">Resume tracking when PC Wrapped opens</strong
+              ><small data-i18n="settings.resumeNote">Off by default. If tracking was on when the app closed, it starts again on the next launch.</small></span
+            ><input id="resume-toggle" type="checkbox" /><span class="toggle-ui"></span
+          ></label>
+          <label class="toggle-row"
+            ><span
+              ><strong data-i18n="settings.fullscreen">Count full-screen games and videos</strong
+              ><small data-i18n="settings.fullscreenNote"
+                >A controller or a film produces no keyboard or mouse input. Full-screen apps stay active for up to 4 hours without it;
+                never while the PC is locked.</small
+              ></span
+            ><input id="fullscreen-toggle" type="checkbox" /><span class="toggle-ui"></span
           ></label>
           <div class="privacy-row">
             <div>
-              <strong>Stored on this PC</strong
-              ><small>Daily totals only · 365-day retention · no window titles, screenshots, or keyboard monitoring.</small>
+              <strong data-i18n="settings.appearance">Appearance</strong><small data-i18n="settings.appearanceNote">Dark blue is gentler on the eyes in the evening. Follow Windows switches with your system theme.</small>
             </div>
-            <button id="delete-button" class="danger-button">Delete all history</button>
+            <select id="theme-select" class="theme-select" aria-label="Appearance" data-i18n-aria-label="settings.appearance">
+              <option value="light" data-i18n="theme.light">Light turquoise</option>
+              <option value="dark" data-i18n="theme.dark">Dark blue</option>
+              <option value="system" data-i18n="theme.system">Follow Windows</option>
+            </select>
           </div>
           <div class="privacy-row">
             <div>
-              <strong>Take your data with you</strong><small>One row per app per day, as a CSV you can open in a spreadsheet.</small>
+              <strong data-i18n="settings.stored">Stored on this PC</strong
+              ><small data-i18n="settings.storedNote">Daily totals only · 365-day retention · no window titles, screenshots or keyboard monitoring.</small>
             </div>
-            <button id="export-csv-button" class="secondary-button">Export CSV</button>
+            <button id="delete-button" class="danger-button" data-i18n="settings.delete">Delete all history</button>
+          </div>
+          <div class="privacy-row">
+            <div>
+              <strong data-i18n="settings.export">Take your data with you</strong><small data-i18n="settings.exportNote">One row per app per day, as a CSV you can open in a spreadsheet.</small>
+            </div>
+            <button id="export-csv-button" class="secondary-button" data-i18n="settings.exportButton">Export CSV</button>
           </div>
           <div id="action-notice" class="action-notice" role="status" aria-live="polite" hidden></div>
           <div class="preference-lists">
             <section class="preference-list">
               <div>
-                <h3>Excluded from tracking</h3>
-                <p>Future activity only. Existing history stays until you separately remove it.</p>
+                <h3 data-i18n="prefs.excludedTitle">Excluded from tracking</h3>
+                <p data-i18n="prefs.excludedNote">Future activity only. Existing history stays until you separately remove it.</p>
               </div>
               <div id="excluded-apps-list" class="preference-items"></div>
             </section>
             <section class="preference-list">
               <div>
-                <h3>Hidden on cards</h3>
-                <p>Still included in your totals and percentages.</p>
+                <h3 data-i18n="prefs.hiddenTitle">Hidden on cards</h3>
+                <p data-i18n="prefs.hiddenNote">Still included in your totals and percentages.</p>
               </div>
               <div id="hidden-apps-list" class="preference-items"></div>
             </section>
           </div>
         </section>
-        <footer>Close this window to keep PC Wrapped in the tray. Choose Quit from the tray menu to exit.</footer>
+        <footer data-i18n="footer">Close this window to keep PC Wrapped in the tray. Choose Quit from the tray menu to exit.</footer>
       </main>
     </div>
   </body>

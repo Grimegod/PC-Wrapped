@@ -1,6 +1,7 @@
-import type { AppBridge, AppState, DayAggregate, RecapStats, ShareTarget } from "../shared/model.js";
+import type { AppBridge, AppState, DayAggregate, I18nPayload, RecapStats, ShareTarget } from "../shared/model.js";
 import type { RecapPeriod } from "../shared/constants.js";
-import { absurdConversion } from "../shared/conversions.js";
+import { conversionText } from "../shared/conversions.js";
+import { createTranslator, type Translator } from "../shared/i18n.js";
 import { pngDataUrlToBlob } from "./card-preview.js";
 
 declare global {
@@ -14,6 +15,8 @@ let latestState: AppState | undefined;
 let previewObjectUrl: string | undefined;
 let savedCardPath: string | null = null;
 let previewedSignature = "";
+let tr: Translator = createTranslator("en", {});
+const t = (key: string, params?: Record<string, string | number>): string => tr.t(key, params);
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing UI element: ${id}`);
@@ -25,8 +28,40 @@ function isRecapPeriod(value: string | undefined): value is RecapPeriod {
 }
 
 function duration(ms: number): string {
-  const minutes = Math.max(0, Math.round(ms / 60_000));
-  return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`;
+  return tr.duration(ms);
+}
+
+/** Put the chosen language on every element marked with data-i18n, and set the page direction. */
+function applyI18n(payload: I18nPayload): void {
+  tr = createTranslator(payload.locale, payload.messages, payload.fallback);
+  document.documentElement.lang = payload.locale;
+  document.documentElement.dir = payload.dir;
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n!);
+  });
+  for (const attribute of ["title", "alt", "aria-label"] as const) {
+    const dataName = `i18n${attribute === "aria-label" ? "AriaLabel" : attribute[0].toUpperCase() + attribute.slice(1)}`;
+    document.querySelectorAll<HTMLElement>(`[data-i18n-${attribute}]`).forEach((element) => {
+      element.setAttribute(attribute, t(element.dataset[dataName]!));
+    });
+  }
+  const select = byId<HTMLSelectElement>("language-select");
+  const autoName = payload.languages.find((language) => language.code === payload.autoLocale)?.nativeName ?? payload.autoLocale;
+  select.replaceChildren(
+    new Option(t("language.auto", { language: autoName }), "auto"),
+    ...payload.languages.map((language) => {
+      const option = new Option(language.nativeName, language.code);
+      option.lang = language.code;
+      return option;
+    })
+  );
+  select.value = payload.choice;
+  updateInterruptionCopy();
+  if (latestState) render(latestState);
+}
+
+function updateInterruptionCopy(): void {
+  byId("interruption-copy").textContent = t(period === "day" ? "return.copyDay" : "return.copyRange");
 }
 
 function currentData(state: AppState): { day: DayAggregate; stats: RecapStats; archetype: AppState["todayArchetype"] } {
@@ -48,27 +83,31 @@ function render(state: AppState): void {
   const { stats, day } = selected;
   const hasCardData = stats.totalActiveMs > 0;
   byId("status-dot").classList.toggle("on", state.tracking);
-  byId("status-text").textContent = state.tracking ? "Tracking is on" : "Tracking is paused";
-  byId<HTMLButtonElement>("tracking-button").textContent = state.tracking ? "Pause tracking" : "Start tracking";
+  byId("status-text").textContent = t(state.tracking ? "status.on" : "status.paused");
+  byId<HTMLButtonElement>("tracking-button").textContent = t(state.tracking ? "button.pauseTracking" : "button.startTracking");
   byId("active-time").textContent = duration(stats.totalActiveMs);
   byId("longest-streak").textContent = duration(stats.longestStreakMs);
-  byId("app-changes").textContent = stats.appChanges.toLocaleString();
+  byId("app-changes").textContent = tr.number(stats.appChanges);
   const archetypeEmoji = byId<HTMLDivElement>("archetype-emoji");
   const archetypeLine = byId<HTMLParagraphElement>("archetype-line");
   archetypeEmoji.textContent = hasCardData ? selected.archetype.emoji : "";
   archetypeEmoji.hidden = !hasCardData;
-  byId("archetype-name").textContent = hasCardData ? selected.archetype.name : "Your character appears after some tracking.";
+  byId("archetype-name").textContent = hasCardData ? selected.archetype.name : t("character.placeholder");
   archetypeLine.textContent = hasCardData ? selected.archetype.line : "";
   archetypeLine.hidden = !hasCardData;
-  byId("conversion").textContent = absurdConversion(stats.totalActiveMs / 60_000);
-  byId("app-count").textContent = `${stats.uniqueApps} ${stats.uniqueApps === 1 ? "app" : "apps"}`;
+  byId("conversion").textContent = conversionText(stats.totalActiveMs / 60_000, tr);
+  byId("app-count").textContent = t("apps.count", { count: tr.number(stats.uniqueApps) });
   byId("return-summary").textContent = stats.completedInterruptions
-    ? `${stats.completedInterruptions} confirmed return${stats.completedInterruptions === 1 ? "" : "s"} · avg ${duration(stats.averageReturnMs)} of active detour time`
-    : "No confirmed long-visit returns yet.";
+    ? t("return.summary", { count: tr.number(stats.completedInterruptions), duration: duration(stats.averageReturnMs) })
+    : t("return.none");
   const warning = byId<HTMLDivElement>("warning");
   warning.textContent = state.warning;
   warning.hidden = !state.warning;
   byId<HTMLInputElement>("startup-toggle").checked = state.startAtLogin;
+  byId<HTMLInputElement>("resume-toggle").checked = state.resumeTracking;
+  byId<HTMLInputElement>("fullscreen-toggle").checked = state.countFullscreen;
+  byId<HTMLSelectElement>("theme-select").value = state.theme;
+  applyTheme(state.theme);
   byId<HTMLButtonElement>("preview-button").disabled = !hasCardData;
   byId<HTMLButtonElement>("save-button").disabled = !hasCardData;
   byId<HTMLParagraphElement>("card-empty-message").hidden = hasCardData;
@@ -76,6 +115,16 @@ function render(state: AppState): void {
   renderApps(day);
   renderPreferenceLists(state);
 }
+
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+/** Light turquoise, dark blue, or whatever Windows uses; "system" follows changes live. */
+function applyTheme(theme: AppState["theme"]): void {
+  const dark = theme === "dark" || (theme === "system" && systemDark.matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+}
+systemDark.addEventListener("change", () => {
+  if (latestState) applyTheme(latestState.theme);
+});
 
 function renderApps(day: DayAggregate): void {
   const host = byId<HTMLDivElement>("apps-list");
@@ -86,8 +135,13 @@ function renderApps(day: DayAggregate): void {
   if (!apps.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.innerHTML =
-      "<span>☁️</span><p>No app time yet.</p><small>Start tracking when you're ready. Tracking is off until you choose.</small>";
+    const icon = document.createElement("span");
+    icon.textContent = "☁️";
+    const title = document.createElement("p");
+    title.textContent = t("apps.emptyTitle");
+    const note = document.createElement("small");
+    note.textContent = t("apps.emptyNote");
+    empty.append(icon, title, note);
     host.append(empty);
     return;
   }
@@ -103,7 +157,7 @@ function renderApps(day: DayAggregate): void {
     const fill = document.createElement("progress");
     fill.max = 100;
     fill.value = Math.max(3, (app.activeMs / max) * 100);
-    fill.setAttribute("aria-label", `${app.label} share of active app time`);
+    fill.setAttribute("aria-label", t("apps.barAria", { app: app.label }));
     bar.append(fill);
     const time = document.createElement("div");
     time.className = "app-time";
@@ -111,26 +165,19 @@ function renderApps(day: DayAggregate): void {
     const actions = document.createElement("div");
     actions.className = "app-actions";
     actions.append(
-      makeActionButton(
-        Object.hasOwn(latestState?.excludedApps ?? {}, executableId) ? "Include again" : "Exclude future tracking",
-        async () => {
-          const excluded = !Object.hasOwn(latestState?.excludedApps ?? {}, executableId);
-          const next = await window.pcWrapped.setExcludedApp(executableId, app.label, excluded);
-          latestState = next;
-          render(next);
-          showNotice(
-            excluded
-              ? `${app.label} is excluded from future tracking. Existing history is unchanged.`
-              : `${app.label} will be tracked again.`
-          );
-        }
-      ),
-      makeActionButton(Object.hasOwn(latestState?.hiddenApps ?? {}, executableId) ? "Show on cards" : "Hide on cards", async () => {
+      makeActionButton(t(Object.hasOwn(latestState?.excludedApps ?? {}, executableId) ? "apps.include" : "apps.exclude"), async () => {
+        const excluded = !Object.hasOwn(latestState?.excludedApps ?? {}, executableId);
+        const next = await window.pcWrapped.setExcludedApp(executableId, app.label, excluded);
+        latestState = next;
+        render(next);
+        showNotice(t(excluded ? "notice.excluded" : "notice.included", { app: app.label }));
+      }),
+      makeActionButton(t(Object.hasOwn(latestState?.hiddenApps ?? {}, executableId) ? "apps.show" : "apps.hide"), async () => {
         const hidden = !Object.hasOwn(latestState?.hiddenApps ?? {}, executableId);
         const next = await window.pcWrapped.setHiddenOnCard(executableId, app.label, hidden);
         latestState = next;
         render(next);
-        showNotice(hidden ? `${app.label} remains in totals and is hidden on cards.` : `${app.label} will appear on cards again.`);
+        showNotice(t(hidden ? "notice.hidden" : "notice.shown", { app: app.label }));
       })
     );
     row.append(name, bar, time, actions);
@@ -142,25 +189,24 @@ function renderPreferenceLists(state: AppState): void {
   const excludedHost = byId<HTMLDivElement>("excluded-apps-list");
   excludedHost.replaceChildren();
   const excludedEntries = Object.entries(state.excludedApps);
-  if (!excludedEntries.length)
-    excludedHost.append(makeEmptyPreference("No apps are excluded. Use “Exclude future tracking” on an app in Apps on stage to add one."));
+  if (!excludedEntries.length) excludedHost.append(makeEmptyPreference(t("prefs.excludedEmpty")));
   for (const [id, label] of excludedEntries) {
     const row = preferenceRow(id, label);
     row.append(
-      makeActionButton("Re-include", async () => {
+      makeActionButton(t("prefs.reinclude"), async () => {
         const next = await window.pcWrapped.setExcludedApp(id, label, false);
         render(next);
-        showNotice(`${label} will be tracked again. Existing history was not changed.`);
+        showNotice(t("notice.reincluded", { app: label }));
       }),
       makeActionButton(
-        "Also remove past data",
+        t("prefs.removePast"),
         async () => {
           const result = await window.pcWrapped.removeAppPastData(id);
           if (result.confirmed) {
             const next = await window.pcWrapped.getState();
             render(next);
-            showNotice(`Removed ${duration(result.removedActiveMs)} from ${result.removedDays} saved day(s).`);
-          } else showNotice("No past data was removed.");
+            showNotice(t("notice.removed", { duration: duration(result.removedActiveMs), count: tr.number(result.removedDays) }));
+          } else showNotice(t("notice.noneRemoved"));
         },
         true
       )
@@ -171,15 +217,14 @@ function renderPreferenceLists(state: AppState): void {
   const hiddenHost = byId<HTMLDivElement>("hidden-apps-list");
   hiddenHost.replaceChildren();
   const hiddenEntries = Object.entries(state.hiddenApps);
-  if (!hiddenEntries.length)
-    hiddenHost.append(makeEmptyPreference("No apps are hidden. Use “Hide on cards” on an app in Apps on stage to add one."));
+  if (!hiddenEntries.length) hiddenHost.append(makeEmptyPreference(t("prefs.hiddenEmpty")));
   for (const [id, label] of hiddenEntries) {
     const row = preferenceRow(id, label);
     row.append(
-      makeActionButton("Show on cards", async () => {
+      makeActionButton(t("apps.show"), async () => {
         const next = await window.pcWrapped.setHiddenOnCard(id, label, false);
         render(next);
-        showNotice(`${label} will appear on cards again.`);
+        showNotice(t("notice.shown", { app: label }));
       })
     );
     hiddenHost.append(row);
@@ -216,10 +261,15 @@ function makeActionButton(text: string, action: () => Promise<void>, danger = fa
     "click",
     () =>
       void action().catch((error: unknown) => {
-        showNotice(error instanceof Error ? error.message : "The setting could not be saved.");
+        showNotice(error instanceof Error ? cleanError(error) : t("error.setting"));
       })
   );
   return button;
+}
+
+/** IPC errors arrive as "Error invoking remote method 'x': Error: message"; keep only the message. */
+function cleanError(error: Error): string {
+  return error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
 }
 
 function showNotice(text: string): void {
@@ -231,22 +281,51 @@ function showNotice(text: string): void {
 byId("tracking-button").addEventListener("click", () => {
   void (async () => {
     render(await window.pcWrapped.setTracking(!latestState?.tracking));
-  })();
+  })().catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.tracking")));
 });
 byId("startup-toggle").addEventListener("change", (event) => {
-  void window.pcWrapped.setStartAtLogin((event.currentTarget as HTMLInputElement).checked);
+  void window.pcWrapped
+    .setStartAtLogin((event.currentTarget as HTMLInputElement).checked)
+    .catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.setting")));
 });
+byId<HTMLSelectElement>("theme-select").addEventListener("change", (event) => {
+  const value = (event.currentTarget as HTMLSelectElement).value;
+  if (value !== "light" && value !== "dark" && value !== "system") return;
+  applyTheme(value);
+  void window.pcWrapped
+    .setTheme(value)
+    .then(render)
+    .catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.setting")));
+});
+byId<HTMLSelectElement>("language-select").addEventListener("change", (event) => {
+  const choice = (event.currentTarget as HTMLSelectElement).value;
+  void window.pcWrapped
+    .setLanguage(choice)
+    .then(applyI18n)
+    .catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.setting")));
+});
+for (const [id, setting] of [
+  ["resume-toggle", "resumeTracking"],
+  ["fullscreen-toggle", "countFullscreen"]
+] as const) {
+  byId(id).addEventListener("change", (event) => {
+    void window.pcWrapped
+      .setToggle(setting, (event.currentTarget as HTMLInputElement).checked)
+      .then(render)
+      .catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.setting")));
+  });
+}
 byId("export-csv-button").addEventListener("click", () => {
   void (async () => {
     const saved = await window.pcWrapped.exportHistoryCsv();
-    showNotice(saved ? `History exported to ${saved}` : "Nothing saved to export yet.");
-  })().catch((error: unknown) => showNotice(error instanceof Error ? error.message : "The history could not be exported."));
+    showNotice(saved ? t("notice.csvExported", { path: saved }) : t("notice.csvEmpty"));
+  })().catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.csv")));
 });
 byId("delete-button").addEventListener("click", () => {
   void (async () => {
     await window.pcWrapped.deleteHistory();
     render(await window.pcWrapped.getState());
-  })();
+  })().catch((error: unknown) => showNotice(error instanceof Error ? cleanError(error) : t("error.delete")));
 });
 byId("create-card-button").addEventListener("click", () => {
   const section = byId<HTMLElement>("card-section");
@@ -258,23 +337,47 @@ byId("settings-button").addEventListener("click", () => {
   section.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   section.focus({ preventScroll: true });
 });
-document.querySelectorAll<HTMLButtonElement>(".period-button").forEach((button) =>
+const periodButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".period-button"));
+// Tabs follow the ARIA pattern: one tab in the Tab order, arrow keys and Home/End move between them.
+periodButtons.forEach((button, index) =>
+  button.addEventListener("keydown", (event) => {
+    const last = periodButtons.length - 1;
+    const next =
+      event.key === "ArrowRight"
+        ? index === last
+          ? 0
+          : index + 1
+        : event.key === "ArrowLeft"
+          ? index === 0
+            ? last
+            : index - 1
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? last
+              : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    periodButtons[next].focus();
+    periodButtons[next].click();
+  })
+);
+periodButtons.forEach((button) =>
   button.addEventListener("click", () => {
     clearCardPreview();
     period = isRecapPeriod(button.dataset.period) ? button.dataset.period : "day";
-    document.querySelectorAll(".period-button").forEach((item) => {
+    periodButtons.forEach((item) => {
       item.classList.toggle("active", item === button);
       item.setAttribute("aria-selected", String(item === button));
+      item.tabIndex = item === button ? 0 : -1;
     });
-    byId("interruption-copy").textContent =
-      period === "day"
-        ? "Time from an app visit of at least 10 minutes until you return and stay for 30 seconds. Idle time is excluded."
-        : "For visits of at least 10 minutes, the active time until a 30-second steady return. Idle time is excluded.";
+    updateInterruptionCopy();
     if (latestState) render(latestState);
   })
 );
 
 async function previewCard(): Promise<void> {
+  byId<HTMLParagraphElement>("card-error").hidden = true;
   if (!latestState || currentData(latestState).stats.totalActiveMs <= 0) {
     byId<HTMLParagraphElement>("card-empty-message").hidden = false;
     return;
@@ -286,13 +389,13 @@ async function previewCard(): Promise<void> {
   const image = byId<HTMLImageElement>("card-preview");
   image.onerror = () => {
     clearCardPreview();
-    showNotice("The card preview could not be displayed. Please try previewing it again.");
+    showNotice(t("error.previewShow"));
   };
   image.src = nextUrl;
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = nextUrl;
   byId("preview-wrap").hidden = false;
-  byId("export-message").textContent = format === "story" ? "Story card · 1080 × 1920 px" : "Square card · 1080 × 1080 px";
+  byId("export-message").textContent = t(format === "story" ? "card.storyInfo" : "card.squareInfo");
   previewedSignature = `${format}:${period}`;
   refreshShareRow();
 }
@@ -310,7 +413,7 @@ function refreshShareRow(): void {
 
 async function shareCard(target: ShareTarget): Promise<void> {
   if (!savedCardPath) {
-    byId("share-message").textContent = "Save the PNG first, then share the saved card.";
+    byId("share-message").textContent = t("share.saveFirst");
     return;
   }
   const format = byId<HTMLSelectElement>("card-format").value as "story" | "square";
@@ -323,21 +426,28 @@ document.querySelectorAll<HTMLButtonElement>(".share-button").forEach((button) =
     const target = button.dataset.share as ShareTarget | undefined;
     if (!target) return;
     void shareCard(target).catch((error: unknown) => {
-      byId("share-message").textContent = error instanceof Error ? error.message : "The share page could not be opened.";
+      byId("share-message").textContent = error instanceof Error ? cleanError(error) : t("share.openFailed");
     });
   })
 );
-byId("preview-button").addEventListener("click", () => void previewCard());
-byId("save-button").addEventListener("click", () => {
-  void saveCard();
+byId("preview-button").addEventListener("click", () => {
+  void previewCard().catch((error: unknown) => showCardError(error, t("error.preview")));
 });
+byId("save-button").addEventListener("click", () => {
+  void saveCard().catch((error: unknown) => showCardError(error, t("error.save")));
+});
+function showCardError(error: unknown, fallback: string): void {
+  const message = byId<HTMLParagraphElement>("card-error");
+  message.textContent = error instanceof Error ? cleanError(error) : fallback;
+  message.hidden = false;
+}
 async function saveCard(): Promise<void> {
   if (!latestState || currentData(latestState).stats.totalActiveMs <= 0) return;
   const format = byId<HTMLSelectElement>("card-format").value as "story" | "square";
   const saved = await window.pcWrapped.exportCard(format, period);
   if (saved) {
     savedCardPath = saved;
-    byId("export-message").textContent = `Saved locally: ${saved}`;
+    byId("export-message").textContent = t("card.savedAt", { path: saved });
     await previewCard();
     refreshShareRow();
   }
@@ -359,4 +469,11 @@ function clearCardPreview(): void {
 }
 
 window.pcWrapped.onState(render);
-void window.pcWrapped.getState().then(render);
+window.pcWrapped.onI18n(applyI18n);
+// Language first, so the first paint is already in the reader's language.
+void window.pcWrapped
+  .getI18n()
+  .then(applyI18n)
+  .catch(() => undefined)
+  .then(() => window.pcWrapped.getState())
+  .then(render);

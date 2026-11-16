@@ -3,15 +3,33 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#191516" />
+    <meta
+      name="theme-color"
+      content="#e3f8f5"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0b1626"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta
       name="description"
-      content="PC Wrapped is a free Windows app that recaps the time you spend in each app: daily, weekly, monthly and yearly cards you can save as PNG, plus CSV export. Offline, no account, no telemetry. Available in the Microsoft Store."
+      content="PC Wrapped is a free Windows app that recaps the time you spend in each app: today, the last 7 days, this month and this year, with story cards to share. 35 languages, offline, no account, no telemetry. Available in the Microsoft Store."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="PC Wrapped — free Windows app that recaps your app time" />
-    <meta property="og:description" content="A friendly recap of your desktop time, kept on your PC." />
-    <meta property="og:image" content="https://grimegod.github.io/PC-Wrapped/assets/pc-wrapped.png" />
+    <meta
+      property="og:title"
+      content="PC Wrapped — a private, playful recap of your app time"
+    />
+    <meta
+      property="og:description"
+      content="A friendly recap of your desktop time, kept on your PC. Now in 35 languages."
+    />
+    <meta
+      property="og:image"
+      content="https://grimegod.github.io/PC-Wrapped/assets/og-image.png"
+    />
     <link rel="canonical" href="https://grimegod.github.io/PC-Wrapped/" />
     <meta name="robots" content="index, follow" />
     <meta property="og:url" content="https://grimegod.github.io/PC-Wrapped/" />
@@ -25,215 +43,397 @@
         "name": "PC Wrapped",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Windows 10, Windows 11",
+        "softwareVersion": "1.3.0",
         "url": "https://grimegod.github.io/PC-Wrapped/",
         "downloadUrl": "https://apps.microsoft.com/detail/9PLJFV595G0X",
-        "description": "PC Wrapped is a free Windows app that recaps the time you spend in each app, as daily, weekly, monthly and yearly cards you can save as PNG, with CSV export. Fully offline: no account, no network, no telemetry.",
+        "screenshot": "https://grimegod.github.io/PC-Wrapped/assets/app-dashboard.webp",
+        "description": "PC Wrapped is a free Windows app that recaps the time you spend in each app, with story and square cards you can save as PNG and CSV export. 35 languages. Fully offline: no account, no network, no telemetry.",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "privacyPolicy": "https://grimegod.github.io/PC-Wrapped/privacy.html"
       }
     </script>
     <link rel="stylesheet" href="styles.css" />
-    <title>PC Wrapped — free Windows app that recaps your app time</title>
+    <title>PC Wrapped — a private, playful recap of your app time</title>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header" id="top">
       <div class="nav-shell">
         <a class="brand" href="#top" aria-label="PC Wrapped home">
-          <img src="assets/pc-wrapped.png" alt="" width="42" height="42" />
+          <img src="assets/pc-wrapped.png" alt="" width="40" height="40" />
           <span>PC Wrapped<small>YOUR DESKTOP, RECAP</small></span>
         </a>
         <nav aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
+          <a href="#new">What's new</a>
           <a href="#privacy">Privacy</a>
           <a href="#faq">FAQ</a>
         </nav>
-        <a class="button button-small button-nav" href="https://apps.microsoft.com/detail/9PLJFV595G0X" target="_blank" rel="noreferrer"
-          >Microsoft Store <span aria-hidden="true">↗</span></a
+        <a
+          class="button button-small button-primary button-nav"
+          href="https://apps.microsoft.com/detail/9PLJFV595G0X"
+          target="_blank"
+          rel="noreferrer"
+          >Get it free <span aria-hidden="true">↗</span></a
         >
       </div>
     </header>
 
     <main id="main">
       <section class="hero wrap" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="eyebrow-dot"></span> A PRIVATE WINDOWS APP</p>
-          <h1 id="hero-title">Your desktop tells a story.<br /><em>Keep the story yours.</em></h1>
-          <p class="hero-lede">
-            PC Wrapped turns the time your active day spends in apps into a warm, playful recap. No productivity score. No account. Just a
-            little desktop folklore.
+        <div>
+          <p class="eyebrow">A private Windows app · version 1.3</p>
+          <h1 id="hero-title">Where did the hours <em>wander?</em></h1>
+          <p class="lede">
+            PC Wrapped turns your desktop time into a small, friendly story: a
+            private recap of the apps that had the floor. No productivity score,
+            no account, nothing uploaded.
           </p>
           <div class="hero-actions">
-            <a class="button button-primary" href="https://apps.microsoft.com/detail/9PLJFV595G0X" target="_blank" rel="noreferrer"
-              >Find it on Microsoft Store <span aria-hidden="true">↗</span></a
+            <a
+              class="button button-primary"
+              href="https://apps.microsoft.com/detail/9PLJFV595G0X"
+              target="_blank"
+              rel="noreferrer"
+              >Get it from the Microsoft Store
+              <span aria-hidden="true">↗</span></a
             >
-            <a class="button button-quiet" href="https://github.com/Grimegod/PC-Wrapped" target="_blank" rel="noreferrer"
-              >Browse the repository <span aria-hidden="true">↗</span></a
+            <a
+              class="button button-quiet"
+              href="https://github.com/Grimegod/PC-Wrapped"
+              target="_blank"
+              rel="noreferrer"
+              >View on GitHub <span aria-hidden="true">↗</span></a
             >
           </div>
-          <p class="hero-note"><span aria-hidden="true">✦</span> Tracking starts only when you choose. Your recap stays on this PC.</p>
+          <p class="hero-note">
+            Free · Windows 10 and 11 · tracking starts only when you choose
+          </p>
+          <div class="badges" aria-label="Highlights">
+            <span class="badge"><strong>35</strong> languages</span>
+            <span class="badge">Light or <strong>dark blue</strong></span>
+            <span class="badge"><strong>0</strong> uploads</span>
+          </div>
         </div>
-
-        <div class="hero-art" aria-label="Illustrative recap card with sample data">
-          <div class="orbit orbit-a" aria-hidden="true"></div>
-          <div class="orbit orbit-b" aria-hidden="true"></div>
-          <div class="spark spark-a" aria-hidden="true">✦</div>
-          <div class="spark spark-b" aria-hidden="true">✳</div>
-          <article class="recap-card">
-            <div class="card-topline"><span class="card-brand">PCWRAPPED</span><span class="sample-label">SAMPLE DATA</span></div>
-            <p class="card-kicker">TODAY · YOUR DESKTOP, RECAP</p>
-            <p class="card-total">2h <span>30m</span></p>
-            <p class="card-caption">active app time <span>·</span> idle time left out</p>
-            <div class="card-character">
-              <span class="character-icon" aria-hidden="true">⌘</span>
-              <div>
-                <span class="tiny-label">TODAY'S DESKTOP CHARACTER</span><strong>The Curious Sort</strong
-                ><small>One app, then another, then a little detour.</small>
-              </div>
+        <div class="hero-art">
+          <div class="window">
+            <div class="window-bar" aria-hidden="true">
+              <i></i><i></i><i></i><span>PC Wrapped</span>
             </div>
-            <div class="sample-apps" aria-label="Sample app breakdown">
-              <div class="sample-app">
-                <span>Writing app</span><span>48%</span><i><b style="width: 48%"></b></i>
-              </div>
-              <div class="sample-app">
-                <span>Browser</span><span>33%</span><i><b style="width: 33%"></b></i>
-              </div>
-              <div class="sample-app">
-                <span>Music app</span><span>19%</span><i><b style="width: 19%"></b></i>
-              </div>
-            </div>
-            <p class="card-foot">AN EXAMPLE RECAP · NOT REAL ACTIVITY</p>
-          </article>
-          <p class="art-caption"><span class="caption-line"></span> A recap card is made locally, then saved as a PNG.</p>
+            <img
+              src="assets/app-dashboard.webp"
+              width="1600"
+              height="900"
+              alt="The PC Wrapped dashboard: total app time, longest single-app stretch, app changes, the top apps with time bars, and a desktop character."
+            />
+          </div>
+          <img
+            class="hero-card"
+            src="assets/card-story.webp"
+            width="720"
+            height="1280"
+            alt="A story-size recap card made by PC Wrapped."
+          />
         </div>
       </section>
 
-      <section class="intro-band">
-        <div class="wrap intro-grid">
-          <p class="eyebrow">A RECAP, NOT A REPORT CARD</p>
-          <p class="intro-copy">
-            See where active time went, notice a few patterns, and move on with your day. PC Wrapped never labels your time as good or bad.
+      <section
+        class="section wrap"
+        id="how-it-works"
+        aria-labelledby="how-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">A small window into the day</p>
+          <h2 id="how-title">Three steps. No big setup.</h2>
+          <p>
+            Start when you want a recap. Pause whenever you want your desktop to
+            yourself.
+          </p>
+        </div>
+        <div class="steps">
+          <article class="card">
+            <span class="step-number">1</span>
+            <h3>Start tracking when you like</h3>
+            <p>
+              Tracking is off until you turn it on. PC Wrapped then notes which
+              app is in front and when the PC is idle — nothing more.
+            </p>
+          </article>
+          <article class="card">
+            <span class="step-number">2</span>
+            <h3>Read the little patterns</h3>
+            <p>
+              Today, the last 7 days, this month or this year: app time, your
+              longest single-app stretch, app changes and your top apps.
+            </p>
+          </article>
+          <article class="card">
+            <span class="step-number">3</span>
+            <h3>Keep it or share it</h3>
+            <p>
+              Save a story or square card as a PNG. Facebook, Instagram and
+              friends open with the card ready to paste.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section wrap" aria-label="Screens">
+        <div class="showcase">
+          <div class="showcase-media card-pair">
+            <img
+              src="assets/card-story.webp"
+              width="720"
+              height="1280"
+              alt="Story recap card, 1080 by 1920."
+              loading="lazy"
+            />
+            <img
+              src="assets/card-square.webp"
+              width="720"
+              height="720"
+              alt="Square recap card, 1080 by 1080."
+              loading="lazy"
+            />
+          </div>
+          <div>
+            <p class="eyebrow">Ready for your story</p>
+            <h3>Cards that look good anywhere.</h3>
+            <p>
+              Every recap becomes a bright card in story (1080 × 1920) or square
+              (1080 × 1080) size, drawn on your PC.
+            </p>
+            <ul class="ticks">
+              <li>
+                A playful desktop character and a very scientific comparison
+              </li>
+              <li>Hide any app's name on cards with one click</li>
+              <li>Cards are translated too, in every supported language</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="showcase reverse">
+          <div class="showcase-media window narrow">
+            <img
+              src="assets/app-share.webp"
+              width="800"
+              height="820"
+              alt="The card maker with a preview of the story card and share buttons for nine platforms."
+              loading="lazy"
+            />
+          </div>
+          <div>
+            <p class="eyebrow">Share in one click</p>
+            <h3>Copied, opened, pasted.</h3>
+            <p>
+              Press Facebook, Instagram, Messenger, TikTok or Snapchat and PC
+              Wrapped copies the card and opens the site for you — just press
+              Ctrl+V. WhatsApp, Telegram, LinkedIn and X open with a short
+              caption.
+            </p>
+            <p>PC Wrapped never uploads your card. You decide where it goes.</p>
+          </div>
+        </div>
+
+        <div class="showcase">
+          <div class="showcase-media window">
+            <img
+              src="assets/app-dark.webp"
+              width="1600"
+              height="900"
+              alt="PC Wrapped in the dark blue theme."
+            />
+          </div>
+          <div>
+            <p class="eyebrow">Gentle on the eyes</p>
+            <h3>Light turquoise by day, dark blue by night.</h3>
+            <p>
+              Pick a theme or let PC Wrapped follow Windows. Arabic and Hebrew
+              are laid out right to left.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section new-band" id="new" aria-labelledby="new-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <p class="eyebrow">New in version 1.3</p>
+            <h2 id="new-title">Speaks your language now.</h2>
+            <p>
+              PC Wrapped reads your Windows display language the first time it
+              opens and uses it. You can switch from the top bar anytime.
+            </p>
+          </div>
+          <div class="new-grid">
+            <article class="card">
+              <span class="icon" aria-hidden="true">🌐</span>
+              <h3>35 languages</h3>
+              <p>Every full Windows display language, picked automatically.</p>
+            </article>
+            <article class="card">
+              <span class="icon" aria-hidden="true">🌙</span>
+              <h3>Dark blue theme</h3>
+              <p>A calmer evening look, or follow your Windows theme.</p>
+            </article>
+            <article class="card">
+              <span class="icon" aria-hidden="true">🎮</span>
+              <h3>Games and films count</h3>
+              <p>
+                Full-screen time counts even with a controller, never while the
+                PC is locked.
+              </p>
+            </article>
+            <article class="card">
+              <span class="icon" aria-hidden="true">📊</span>
+              <h3>Fair comparisons</h3>
+              <p>
+                Last 7 days against the 7 before, this month against the same
+                days last month.
+              </p>
+            </article>
+          </div>
+          <p class="languages">
+            العربية · Български · Čeština · Dansk · Deutsch · Ελληνικά · English
+            · Español · Eesti · Suomi · Français · עברית · Hrvatski · Magyar ·
+            Italiano · 日本語 · 한국어 · Lietuvių · Latviešu · Norsk bokmål ·
+            Nederlands · Polski · Português (Brasil) · Português (Portugal) ·
+            Română · Русский · Slovenčina · Slovenščina · Srpski · Svenska · ไทย
+            · Türkçe · Українська · 简体中文 · 繁體中文
           </p>
         </div>
       </section>
 
-      <section class="section wrap" id="how-it-works" aria-labelledby="how-title">
-        <div class="section-heading">
-          <p class="eyebrow">A SMALL WINDOW INTO THE DAY</p>
-          <h2 id="how-title">Three steps. No big setup.</h2>
-          <p>Start when you want a recap. Pause whenever you want your desktop to yourself.</p>
-        </div>
-        <div class="steps-grid">
-          <article class="step-card">
-            <span class="step-number">01</span>
-            <span class="step-icon icon-mint" aria-hidden="true">◷</span>
-            <h3>Choose when to track</h3>
-            <p>Tracking is paused by default. Start or pause it from the app whenever it suits you.</p>
-          </article>
-          <article class="step-card">
-            <span class="step-number">02</span>
-            <span class="step-icon icon-peach" aria-hidden="true">↗</span>
-            <h3>Read the little patterns</h3>
-            <p>Switch between today, this week, this month and this year. Review active app time, your longest stretch, and app changes.</p>
-          </article>
-          <article class="step-card">
-            <span class="step-number">03</span>
-            <span class="step-icon icon-lilac" aria-hidden="true">▧</span>
-            <h3>Keep it or share it</h3>
-            <p>Preview a story or square card and save the PNG. Export your whole history as CSV whenever you want to take it with you.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
-        <div class="wrap privacy-grid">
-          <div class="privacy-copy">
-            <p class="eyebrow">PRIVATE BY DESIGN</p>
+      <section
+        class="section wrap"
+        id="privacy"
+        aria-labelledby="privacy-title"
+      >
+        <div class="privacy-grid">
+          <div>
+            <p class="eyebrow">Private by design</p>
             <h2 id="privacy-title">Your day stays on your PC.</h2>
             <p>
-              PC Wrapped is built to make a recap without collecting a diary of what you do. It records app-level totals locally and leaves
-              the contents of your work alone.
+              PC Wrapped makes a recap without keeping a diary of what you do.
+              It stores app-level totals locally and leaves your work alone.
             </p>
-            <a class="text-link" href="privacy.html">Read the privacy details <span aria-hidden="true">→</span></a>
+            <a class="text-link" href="privacy.html"
+              >Read the privacy details →</a
+            >
           </div>
           <div class="privacy-list">
-            <div>
+            <div class="card">
               <span class="check" aria-hidden="true">✓</span>
-              <p><strong>Local totals only</strong><small>Daily app totals are kept on this PC for up to 365 days.</small></p>
+              <p>
+                <strong>Local totals only</strong
+                ><small
+                  >Daily app totals stay on this PC for up to 365 days.</small
+                >
+              </p>
             </div>
-            <div>
+            <div class="card">
               <span class="check" aria-hidden="true">✓</span>
               <p>
                 <strong>No peeking at your work</strong
-                ><small>No window titles, websites, screenshots, keystrokes, or document contents.</small>
+                ><small
+                  >No window titles, websites, screenshots, keystrokes or
+                  document contents.</small
+                >
               </p>
             </div>
-            <div>
+            <div class="card">
               <span class="check" aria-hidden="true">✓</span>
               <p>
-                <strong>Your choice, all the way through</strong
-                ><small>Start tracking, exclude apps, hide names on cards, or delete history.</small>
+                <strong>No account, no server</strong
+                ><small
+                  >Nothing is sent anywhere. There is no PC Wrapped server to
+                  send it to.</small
+                >
               </p>
             </div>
-            <div>
+            <div class="card">
               <span class="check" aria-hidden="true">✓</span>
               <p>
-                <strong>Sharing stays in your hands</strong
-                ><small>The app saves your card locally. You decide whether to attach it somewhere.</small>
+                <strong>Yours to take away</strong
+                ><small
+                  >Export every saved day as CSV, or delete all history from
+                  Settings.</small
+                >
               </p>
-            </div>
-            <div>
-              <span class="check" aria-hidden="true">✓</span>
-              <p><strong>Yours to take away</strong><small>Export every saved day as CSV: one row per app per day, no lock-in.</small></p>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="section wrap faq-section" id="faq" aria-labelledby="faq-title">
-        <div class="section-heading">
-          <p class="eyebrow">GOOD TO KNOW</p>
-          <h2 id="faq-title">A few quick answers.</h2>
-        </div>
-        <div class="faq-list">
-          <details>
-            <summary>Does PC Wrapped judge how productive I am?</summary>
-            <p>
-              No. It summarizes active time by app and uses playful language for the recap. It does not measure attention, intent, or
-              whether an activity was worthwhile.
-            </p>
-          </details>
-          <details>
-            <summary>What does it record?</summary>
-            <p>
-              When tracking is on, the app records the foreground app identity and active/idle timing, then stores daily aggregates. It does
-              not read window titles or browser URLs.
-            </p>
-          </details>
-          <details>
-            <summary>Does my card get uploaded when I share?</summary>
-            <p>
-              No. The PNG is saved locally. If you pick a sharing route, PC Wrapped may open that service with a short caption or copy the
-              PNG to your clipboard; you choose whether to attach or post anything.
-            </p>
-          </details>
-          <details>
-            <summary>Can I stop tracking or remove my history?</summary>
-            <p>Yes. Tracking starts only after you choose it, can be paused from the app, and saved history can be deleted in Settings.</p>
-          </details>
+      <section class="section wrap" id="faq" aria-labelledby="faq-title">
+        <div class="faq">
+          <div>
+            <p class="eyebrow">Good to know</p>
+            <h2 id="faq-title">A few quick answers.</h2>
+          </div>
+          <div>
+            <details>
+              <summary>Does PC Wrapped judge how productive I am?</summary>
+              <p>
+                No. It summarizes active time by app with playful language. It
+                doesn't measure attention, intent or whether time was well
+                spent.
+              </p>
+            </details>
+            <details>
+              <summary>What does it record?</summary>
+              <p>
+                While tracking is on: which app is in the foreground and whether
+                the PC is idle, saved as daily totals per app. It never reads
+                window titles or browser addresses.
+              </p>
+            </details>
+            <details>
+              <summary>Which language will it use?</summary>
+              <p>
+                The first of your Windows display languages that it supports —
+                35 in total. Change it any time from the language picker in the
+                top bar.
+              </p>
+            </details>
+            <details>
+              <summary>Does my card get uploaded when I share?</summary>
+              <p>
+                No. The PNG is saved on your PC. A share button copies it or
+                opens the site with a short caption; you choose whether to post
+                anything.
+              </p>
+            </details>
+            <details>
+              <summary>Can I stop tracking or remove my history?</summary>
+              <p>
+                Yes. Pause from the app or the tray, exclude apps, hide names on
+                cards, or delete all history in Settings.
+              </p>
+            </details>
+          </div>
         </div>
       </section>
 
       <section class="closing wrap" aria-labelledby="closing-title">
-        <div class="closing-mark" aria-hidden="true">✳</div>
-        <p class="eyebrow">MADE FOR WINDOWS</p>
-        <h2 id="closing-title">A little desktop folklore.<br /><em>Entirely yours.</em></h2>
-        <p>See the Store listing or explore the project on GitHub.</p>
-        <div class="hero-actions closing-actions">
-          <a class="button button-primary" href="https://apps.microsoft.com/detail/9PLJFV595G0X" target="_blank" rel="noreferrer"
-            >Microsoft Store <span aria-hidden="true">↗</span></a
+        <p class="eyebrow">Made for Windows</p>
+        <h2 id="closing-title">A little desktop folklore. Entirely yours.</h2>
+        <p>Free in the Microsoft Store for Windows 10 and 11.</p>
+        <div class="hero-actions">
+          <a
+            class="button button-primary"
+            href="https://apps.microsoft.com/detail/9PLJFV595G0X"
+            target="_blank"
+            rel="noreferrer"
+            >Get it from the Microsoft Store
+            <span aria-hidden="true">↗</span></a
           >
-          <a class="button button-quiet" href="https://github.com/Grimegod/PC-Wrapped/releases/latest" target="_blank" rel="noreferrer"
+          <a
+            class="button button-quiet"
+            href="https://github.com/Grimegod/PC-Wrapped/releases/latest"
+            target="_blank"
+            rel="noreferrer"
             >GitHub releases <span aria-hidden="true">↗</span></a
           >
         </div>
@@ -242,17 +442,28 @@
 
     <footer class="site-footer">
       <div class="wrap footer-row">
-        <a class="brand footer-brand" href="#top"
-          ><img src="assets/pc-wrapped.png" alt="" width="32" height="32" /><span>PC Wrapped<small>YOUR DESKTOP, RECAP</small></span></a
+        <a class="brand" href="#top"
+          ><img
+            src="assets/pc-wrapped.png"
+            alt=""
+            width="30"
+            height="30"
+          /><span>PC Wrapped</span></a
         >
         <p>Friendly numbers. No scorekeeping.</p>
         <div class="footer-links">
           <a href="privacy.html">Privacy</a
-          ><a href="https://github.com/Grimegod/PC-Wrapped" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+          ><a
+            href="https://github.com/Grimegod/PC-Wrapped"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub <span aria-hidden="true">↗</span></a
+          >
         </div>
       </div>
       <p class="wrap footer-note">
-        This site is a static page with no analytics or advertising scripts. External links are handled by their respective providers.
+        This site is a static page with no analytics or advertising scripts.
+        External links are handled by their respective providers.
       </p>
     </footer>
   </body>

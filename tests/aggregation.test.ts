@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ActivityAggregator, emptyDay, recapStats, removeAppFromHistory, transitionKey } from "../src/shared/aggregation";
+import { ActivityAggregator, combineDays, emptyDay, recapStats, removeAppFromHistory, transitionKey } from "../src/shared/aggregation";
 import { MIN_INTERRUPTION_STREAK_MS } from "../src/shared/constants";
 import { localDateKey } from "../src/shared/dates";
 import type { Snapshot } from "../src/shared/model";
@@ -239,4 +239,51 @@ test("a full day of samples lands inside one calendar day and never overflows it
     const stats = recapStats(day);
     assert.ok(stats.totalActiveMs <= 86_400_000, `a day reported ${stats.totalActiveMs}ms`);
   }
+});
+
+test("a week's total is not cut to one day's 24 hours, and the top app never exceeds 100%", () => {
+  const HOUR = 3_600_000;
+  const workday = () => {
+    const day = emptyDay();
+    day.apps.code = {
+      label: "VS Code",
+      activeMs: 8 * HOUR,
+      longestStreakMs: 0,
+      interruptionsStarted: 0,
+      interruptionsCompleted: 0,
+      returnTimeTotalMs: 0
+    };
+    day.apps.chrome = {
+      label: "Chrome",
+      activeMs: 1 * HOUR,
+      longestStreakMs: 0,
+      interruptionsStarted: 0,
+      interruptionsCompleted: 0,
+      returnTimeTotalMs: 0
+    };
+    return day;
+  };
+  const week = combineDays(Array.from({ length: 7 }, workday));
+  assert.equal(week.spanDays, 7);
+  const stats = recapStats(week);
+  assert.equal(stats.totalActiveMs, 63 * HOUR);
+  assert.ok(stats.topAppShare <= 1);
+  assert.equal(Math.round(stats.topAppShare * 100), 89);
+});
+
+test("each day still cannot hold more than 24 hours, combined or not", () => {
+  const HOUR = 3_600_000;
+  const broken = emptyDay();
+  broken.apps.a = {
+    label: "A",
+    activeMs: 30 * HOUR,
+    longestStreakMs: 0,
+    interruptionsStarted: 0,
+    interruptionsCompleted: 0,
+    returnTimeTotalMs: 0
+  };
+  assert.equal(recapStats(broken).totalActiveMs, 24 * HOUR);
+  assert.equal(recapStats(combineDays([broken])).totalActiveMs, 24 * HOUR);
+  assert.equal(recapStats(combineDays([broken, emptyDay()])).totalActiveMs, 30 * HOUR);
+  assert.equal(recapStats(broken).topAppShare, 1);
 });

@@ -19,7 +19,7 @@ test("share caption uses only the aggregate values the card already shows", () =
   assert.match(caption, /locally/);
   assert.doesNotMatch(caption, /\.exe|window title|screenshot|chrome|code\.exe/i);
   assert.match(shareCaption("week", 30 * 60_000, "The Home Base Hero"), /30m of app time/);
-  assert.match(shareCaption("week", 30 * 60_000, "The Home Base Hero"), /week/);
+  assert.match(shareCaption("week", 30 * 60_000, "The Home Base Hero"), /last 7 days/);
 });
 
 test("only an existing PNG file is accepted as the card to share", () => {
@@ -63,7 +63,9 @@ test("the app only ever opens share pages and never posts on its own", () => {
   assert.match(source, /https:\/\/wa\.me\/\?text=/);
   assert.match(source, /https:\/\/t\.me\/share\/url\?url=/);
   assert.match(source, /https:\/\/twitter\.com\/intent\/tweet/);
-  assert.match(source, /https:\/\/www\.facebook\.com\/sharer\/sharer\.php/);
+  // Facebook's sharer and Messenger's send dialog need a public link or an app id; without them they
+  // show an error page, so those targets use the clipboard route instead.
+  assert.doesNotMatch(source, /facebook\.com\/(sharer|dialog)/);
   assert.match(source, /https:\/\/www\.linkedin\.com\/feed\/\?shareActive=true/);
 });
 
@@ -98,7 +100,7 @@ test("every offered share target has either a share page or a clipboard route", 
         }
       });
       assert.equal(refused.opened, false);
-      assert.match(refused.message, /Save the card first/);
+      assert.match(refused.message, /Save the PNG first/);
     }
     assert.equal(copied, 0);
     assert.equal(await import("../src/main/share").then((m) => typeof m.isShareablePng), "function");
@@ -147,4 +149,11 @@ test("only a card this process saved can be shared, not any PNG on disk", () => 
   ledger.forget(other);
   assert.equal(isShareableSavedCard(ledger, other), false);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("every clipboard target also opens its platform so the user only has to paste", () => {
+  const source = fs.readFileSync(path.resolve(__dirname, "../src/main/share.ts"), "utf8");
+  for (const target of ["facebook", "messenger", "messengerApp", "telegramApp", "instagram", "snapchat", "tiktok"]) {
+    assert.match(source, new RegExp(`${target}: \\{ name: "[^"]+", openAfterCopy: "https://`), `${target} opens a site after copying`);
+  }
 });

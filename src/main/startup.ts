@@ -1,8 +1,10 @@
-// Login-at-startup for both ways this app can run.
+// Login-at-startup.
 //
-// In a Store (MSIX) build Windows manages startup as a packaged startup task declared in the
-// manifest; setting a plain exe login item there does not work, so the task's own state is used.
-// Everywhere else the ordinary Electron login-item call is used.
+// The ordinary Electron login item is used everywhere. It launches the app with --hidden so a
+// login start goes straight to the tray instead of opening a window over the desktop.
+//
+// TODO(1.3, verify on Windows): a Store (MSIX) install may need a manifest startup task instead of
+// a login item. Until that is confirmed on the Store build, this is the only mechanism.
 import { app } from "electron";
 import { APP_NAME } from "../shared/constants";
 
@@ -12,15 +14,24 @@ export interface StartupDependencies {
   isPackaged: boolean;
 }
 
+/** The argument a login start passes, so the app opens in the tray rather than as a window. */
+export const HIDDEN_LAUNCH_ARG = "--hidden";
+
 /** Open-at-login is a one-way switch: it either applies or it does not. */
 export async function applyStartAtLogin(deps: StartupDependencies, enabled: boolean): Promise<boolean> {
-  deps.setLoginItemSettings({ openAtLogin: enabled, name: APP_NAME });
+  deps.setLoginItemSettings({ openAtLogin: enabled, name: APP_NAME, args: [HIDDEN_LAUNCH_ARG] });
   return enabled;
 }
 
 /** Whether the app will start at login right now, as the platform reports it. */
 export async function readStartAtLogin(deps: StartupDependencies): Promise<boolean> {
-  return deps.getLoginItemSettings().openAtLogin;
+  // Windows matches the login item by path and arguments, so ask with the same arguments.
+  return deps.getLoginItemSettings({ args: [HIDDEN_LAUNCH_ARG] }).openAtLogin;
+}
+
+/** Whether this process was started by the login item rather than by the user. */
+export function launchedHidden(argv: readonly string[]): boolean {
+  return argv.includes(HIDDEN_LAUNCH_ARG);
 }
 
 /** The dependencies Electron provides, so callers do not re-implement them. */

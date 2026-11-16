@@ -1,13 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseTrackerLine, sanitizeTrackerAppId, sanitizeTrackerLabel } from "../src/main/tracker-line";
+import {
+  FULLSCREEN_MAX_IDLE_SECONDS,
+  isIdleSample,
+  parseTrackerLine,
+  sanitizeTrackerAppId,
+  sanitizeTrackerLabel
+} from "../src/main/tracker-line";
 
 const excluded = (appId: string) => appId === "secret";
 const parse = (line: string, idle = false) => parseTrackerLine(line, 1_800_000_000_000, idle, excluded);
 
 test("a well-formed adapter line becomes a snapshot", () => {
   const snapshot = parse(JSON.stringify({ appId: "code", label: "Visual Studio Code", at: 1 }));
-  assert.deepEqual(snapshot, { at: 1_800_000_000_000, appId: "code", label: "Visual Studio Code", idle: false, excluded: false });
+  assert.deepEqual(snapshot, {
+    at: 1_800_000_000_000,
+    appId: "code",
+    label: "Visual Studio Code",
+    idle: false,
+    excluded: false,
+    fullscreen: false
+  });
 });
 
 test("the adapter clock is replaced by the moment the line arrives", () => {
@@ -49,4 +62,33 @@ test("exclusion is resolved at parse time from the current settings", () => {
 
 test("idle comes from the caller, not from the line", () => {
   assert.equal(parse(JSON.stringify({ appId: "code", label: "Code", idle: false }), true)?.idle, true);
+});
+
+test("the adapter's full-screen flag reaches the idle decision", () => {
+  const line = JSON.stringify({ appId: "eldenring", label: "ELDEN RING", fullscreen: true });
+  const seen: Array<[string, boolean]> = [];
+  const snapshot = parseTrackerLine(
+    line,
+    1,
+    (appId, fullscreen) => {
+      seen.push([appId, fullscreen]);
+      return false;
+    },
+    () => false
+  );
+  assert.deepEqual(seen, [["eldenring", true]]);
+  assert.equal(snapshot?.fullscreen, true);
+  assert.equal(parseTrackerLine(JSON.stringify({ appId: "x", fullscreen: "yes" }), 1, false, () => false)?.fullscreen, false);
+});
+
+test("a full-screen game or film stays active without input, within limits", () => {
+  const base = { idleSeconds: 600, thresholdSeconds: 60, locked: false, countFullscreen: true, fullscreen: true, appId: "vlc" };
+  assert.equal(isIdleSample(base), false, "a film with no input still counts");
+  assert.equal(isIdleSample({ ...base, fullscreen: false }), true, "a windowed app without input is idle");
+  assert.equal(isIdleSample({ ...base, countFullscreen: false }), true, "the user can turn it off");
+  assert.equal(isIdleSample({ ...base, locked: true }), true, "nothing counts while locked");
+  assert.equal(isIdleSample({ ...base, locked: true, idleSeconds: 0 }), true, "not even with input");
+  assert.equal(isIdleSample({ ...base, appId: "lockapp" }), true, "the lock screen is never a film");
+  assert.equal(isIdleSample({ ...base, idleSeconds: FULLSCREEN_MAX_IDLE_SECONDS }), true, "four hours without input is idle");
+  assert.equal(isIdleSample({ ...base, fullscreen: false, idleSeconds: 10 }), false, "recent input is active");
 });

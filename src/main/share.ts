@@ -2,7 +2,9 @@ import { shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import type { RecapPeriod } from "../shared/constants";
+import type { Translator } from "../shared/i18n";
 import type { ShareOutcome, ShareTarget } from "../shared/model";
+import { englishTranslator } from "./locales";
 
 export interface ShareOptions {
   target: ShareTarget;
@@ -10,76 +12,46 @@ export interface ShareOptions {
   /** A pre-written caption the user can edit before posting. */
   caption: string;
   /** Called with the file when the target needs a clipboard hand-off instead of a share page. */
-  copyImage?: (filePath: string) => void;
+  copyImage?: (filePath: string) => void | Promise<void>;
+  /** The language the messages are written in; English when omitted. */
+  translator?: Translator;
 }
 
 interface ShareRoute {
+  /** The service's own name, shown in messages; never translated. */
+  name: string;
   /** Opened in the user's browser. Omitted for targets with no usable web share page. */
   url?: (caption: string) => string;
-  /** What the app does when the page is open, so the user knows the next step. */
-  afterOpen: string;
-  /** What the app does when there is no share page: put the PNG on the clipboard. */
-  clipboard: string;
+  /** Whether the opened page receives the caption. */
+  carriesCaption?: boolean;
+  /** For clipboard targets: the site opened right after the card is copied, ready for Ctrl+V. */
+  openAfterCopy?: string;
 }
 
 /**
- * One entry per offered target. Only the first five have a public web share page that accepts a
- * pre-written caption; the rest have none that works without an account, so the card goes to the
- * clipboard and the app is opened for the user to paste into.
+ * One entry per offered target. WhatsApp, Telegram, X and LinkedIn have a public web share page; the
+ * rest have none that works without an account or an app id (Facebook's sharer needs a public link
+ * and Messenger's send dialog an app id), so the card goes to the clipboard, the site opens, and the user pastes it.
  */
 const SHARE_ROUTES: Record<ShareTarget, ShareRoute> = {
-  whatsapp: {
-    url: (caption) => `https://wa.me/?text=${encodeURIComponent(caption)}`,
-    afterOpen: "WhatsApp opened with your caption ready. Attach the saved PNG to send it.",
-    clipboard: ""
-  },
-  telegram: {
-    // Telegram's page needs a link to share; the caption carries the card's own wording.
-    url: (caption) => `https://t.me/share/url?url=${encodeURIComponent(caption)}`,
-    afterOpen: "Telegram opened with your caption ready. Attach the saved PNG to send it.",
-    clipboard: ""
-  },
-  facebook: {
-    url: () => "https://www.facebook.com/sharer/sharer.php",
-    afterOpen: "Facebook opened in your browser. Add the saved PNG with its photo picker.",
-    clipboard: ""
-  },
-  messenger: {
-    url: () => "https://www.facebook.com/dialog/send",
-    afterOpen: "Messenger opened in your browser. Add the saved PNG with its photo picker.",
-    clipboard: ""
-  },
-  x: {
-    url: (caption) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`,
-    afterOpen: "X opened with your caption ready. Attach the saved PNG to post it.",
-    clipboard: ""
-  },
-  linkedin: {
-    url: () => "https://www.linkedin.com/feed/?shareActive=true",
-    afterOpen: "LinkedIn opened in your browser. Add the saved PNG to your post.",
-    clipboard: ""
-  },
-  instagram: {
-    afterOpen: "",
-    clipboard: "Card copied. Open Instagram, then paste it into a story or post."
-  },
-  snapchat: {
-    afterOpen: "",
-    clipboard: "Card copied. Open Snapchat and paste it into a Snap."
-  },
-  tiktok: {
-    afterOpen: "",
-    clipboard: "Card copied. Open TikTok and add it as a photo post."
-  },
-  telegramApp: {
-    afterOpen: "",
-    clipboard: "Card copied. Open Telegram and paste it into a chat."
-  },
-  messengerApp: {
-    afterOpen: "",
-    clipboard: "Card copied. Open Messenger and paste it into a chat."
-  }
+  whatsapp: { name: "WhatsApp", url: (caption) => `https://wa.me/?text=${encodeURIComponent(caption)}`, carriesCaption: true },
+  // Telegram's page needs a link to share; the caption carries the card's own wording.
+  telegram: { name: "Telegram", url: (caption) => `https://t.me/share/url?url=${encodeURIComponent(caption)}`, carriesCaption: true },
+  x: { name: "X", url: (caption) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, carriesCaption: true },
+  linkedin: { name: "LinkedIn", url: () => "https://www.linkedin.com/feed/?shareActive=true" },
+  facebook: { name: "Facebook", openAfterCopy: "https://www.facebook.com/" },
+  messenger: { name: "Messenger", openAfterCopy: "https://www.messenger.com/" },
+  messengerApp: { name: "Messenger", openAfterCopy: "https://www.messenger.com/" },
+  telegramApp: { name: "Telegram", openAfterCopy: "https://web.telegram.org/" },
+  instagram: { name: "Instagram", openAfterCopy: "https://www.instagram.com/" },
+  snapchat: { name: "Snapchat", openAfterCopy: "https://www.snapchat.com/web" },
+  tiktok: { name: "TikTok", openAfterCopy: "https://www.tiktok.com/upload" }
 };
+
+/** Whether a target hands the card over through the clipboard (and then opens its site) rather than a share page. */
+export function usesClipboard(target: ShareTarget): boolean {
+  return !SHARE_ROUTES[target].url;
+}
 
 /** Whether a path is a PNG this app could have written; anything else is never handed to a share route. */
 export function isShareablePng(filePath: unknown): filePath is string {
@@ -95,45 +67,54 @@ export function isShareablePng(filePath: unknown): filePath is string {
  */
 export async function shareCard(options: ShareOptions): Promise<ShareOutcome> {
   const { target, filePath, caption } = options;
+  const { t } = options.translator ?? englishTranslator();
   if (!fs.existsSync(filePath)) {
-    return { opened: false, message: "Save the card first, then share the saved PNG." };
+    return { opened: false, message: t("share.saveFirst") };
   }
   const route = SHARE_ROUTES[target];
 
   if (!route.url) {
+    const copied = t("share.copied", { target: route.name });
     if (!options.copyImage) {
-      return { opened: false, message: `${route.clipboard} The clipboard is unavailable here.`, filePath };
+      return { opened: false, message: `${copied} ${t("share.clipboardUnavailable")}`, filePath };
     }
     try {
-      options.copyImage(filePath);
+      await options.copyImage(filePath);
     } catch (error) {
-      return { opened: false, message: error instanceof Error ? error.message : "The card could not be copied.", filePath };
+      return { opened: false, message: error instanceof Error ? error.message : t("share.copyFailed"), filePath };
     }
-    return { opened: false, message: `${route.clipboard} The saved file is ${path.basename(filePath)}.`, filePath };
+    if (route.openAfterCopy) {
+      // The card is already on the clipboard; open the platform so the user only has to paste.
+      try {
+        await shell.openExternal(route.openAfterCopy);
+        return { opened: true, message: t("share.copiedOpened", { target: route.name }), filePath };
+      } catch {
+        /* Fall through: the copy worked even if the browser did not open. */
+      }
+    }
+    return { opened: false, message: `${copied} ${t("share.savedFile", { file: path.basename(filePath) })}`, filePath };
   }
 
   try {
     await shell.openExternal(route.url(caption));
   } catch (error) {
-    return { opened: false, message: error instanceof Error ? error.message : "The share page could not be opened.", filePath };
+    return { opened: false, message: error instanceof Error ? error.message : t("share.openFailed"), filePath };
   }
-  return { opened: true, message: route.afterOpen, filePath };
+  return { opened: true, message: t(route.carriesCaption ? "share.opened" : "share.openedNoCaption", { target: route.name }), filePath };
 }
 
-/** How a period is named in the card heading and in the share caption. */
-export const PERIOD_WORD: Record<RecapPeriod, string> = {
-  day: "day",
-  week: "week",
-  month: "month",
-  year: "year"
-};
-
 /** The caption offered with a share page. Aggregate values only, matching what the card shows. */
-export function shareCaption(period: RecapPeriod, totalActiveMs: number, archetypeName: string): string {
-  const minutes = Math.max(0, Math.round(totalActiveMs / 60_000));
-  const hours = Math.floor(minutes / 60);
-  const duration = hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
-  return `My ${PERIOD_WORD[period]} on the desktop: ${duration} of app time and I'm "${archetypeName}". Made with PC Wrapped, locally.`;
+export function shareCaption(
+  period: RecapPeriod,
+  totalActiveMs: number,
+  archetypeName: string,
+  translator: Translator = englishTranslator()
+): string {
+  return translator.t("share.caption", {
+    period: translator.t(`captionPeriod.${period}`),
+    duration: translator.duration(totalActiveMs),
+    archetype: archetypeName
+  });
 }
 
 /**

@@ -2,6 +2,58 @@
 
 All notable changes to PC Wrapped. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-11-16
+
+### Fixed
+
+- **Week, month and year totals were cut to 24 hours.** The one-day wall-clock cap was applied to
+  every range, so a 63-hour week showed as 24h and the top app as 233%. The cap now scales with the
+  number of days, and the top app's share can no longer exceed 100%.
+- **"Versus" compared unequal stretches.** This month is now compared with the same days of last
+  month (1–16 November against 1–16 October), the last 7 days with the 7 before, and today is
+  labelled as "so far, versus all of yesterday". The year line is no longer drawn, because history
+  is kept for 365 days and last year's matching days are gone.
+- **Two copies of the app could run at once** and overwrite each other's history. A second launch
+  now brings the existing window forward and exits.
+- Store apps (Calculator, Photos, Netflix…) were all counted as "Application Frame Host"; each is
+  now counted as itself.
+- Windows tools were labelled "Microsoft® Windows® Operating System"; labels now come from the
+  file description (for example "Windows Explorer").
+- App names lost accents and symbols on the way from the activity adapter ("Microsoftr Windowsr");
+  the adapter now writes UTF-8. Days already saved keep their old label until the app is used again.
+- Facebook and Messenger opened error pages. Every share button without a share page (Facebook,
+  Instagram, Messenger, TikTok, Snapchat) now copies the card and opens the platform, ready for Ctrl+V.
+- Saving a card or a CSV to a folder Windows protects shows a plain explanation instead of a raw
+  error. Confirmation messages clear themselves after a few seconds.
+- On the square card, the privacy footer overlapped the third app bar; it now shares the tagline's line.
+- The activity adapter exits at once if it is started without a valid parent process.
+
+### Added
+
+- **35 languages, chosen automatically.** On first launch PC Wrapped reads the Windows display
+  languages in order of preference and uses the first one it has: every full Windows display
+  language is included (Arabic and Hebrew right to left). Windows' partial language packs fall
+  back to their base language. The interface, dialogs, tray menu, share captions and the cards
+  themselves are translated; the language picker in the top bar changes it at any time.
+- **Full-screen games and videos count** even without keyboard or mouse input (a controller or a
+  film produces none), for up to 4 hours and never while the PC is locked. On by default; can be
+  turned off in Settings.
+- **Appearance:** light turquoise, a dark blue theme that is gentler on the eyes in the evening, or
+  follow the Windows theme.
+- **Resume tracking when PC Wrapped opens** (off by default).
+- A login start opens straight into the tray instead of showing the window.
+- The period tabs work with the arrow keys, Home and End.
+
+### Changed
+
+- New look: light turquoise interface with gold buttons.
+- Wider, shorter layout: the language picker sits in the top bar, the card maker sits beside the app list under your character,
+  and the settings are laid out in two columns. The window opens at up to 1400 × 860, never larger than the screen.
+- "This week" is now called **Last 7 days**, which is what it always measured.
+- The tray menu shows one tracking item that matches the current state.
+- Electron 45 (Electron 39 stopped receiving security fixes on 5 May 2026).
+- The UI refreshes from one timer instead of two; sleep and lock are handled explicitly.
+
 ## [1.2.0] — 2026-11-16
 
 ### Added

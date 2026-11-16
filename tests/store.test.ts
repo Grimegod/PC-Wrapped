@@ -115,3 +115,26 @@ test("settings round-trip and reject ids the store cannot accept", () => {
   assert.equal(cleaned.settings.excludedApps["ok.exe"], "Line break");
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test("display and tracking options default safely and survive a bad value", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pc-wrapped-options-"));
+  try {
+    const fresh = new LocalStore(root);
+    fresh.load();
+    assert.equal(fresh.settings.theme, "light");
+    assert.equal(fresh.settings.resumeTracking, false);
+    assert.equal(fresh.settings.countFullscreen, true);
+    fs.writeFileSync(path.join(root, "settings.json"), JSON.stringify({ theme: "neon", resumeTracking: "yes", countFullscreen: false }));
+    const odd = new LocalStore(root);
+    odd.load();
+    assert.equal(odd.settings.theme, "light");
+    assert.equal(odd.settings.resumeTracking, false);
+    assert.equal(odd.settings.countFullscreen, false);
+    fs.writeFileSync(path.join(root, "settings.json"), JSON.stringify({ theme: "dark" }));
+    const dark = new LocalStore(root);
+    dark.load();
+    assert.equal(dark.settings.theme, "dark");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

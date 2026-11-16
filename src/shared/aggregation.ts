@@ -35,7 +35,7 @@ export class ActivityAggregator {
     if (!Number.isFinite(snapshot.at) || !snapshot.appId) return;
     if (!this.previous) {
       this.previous = { ...snapshot };
-      if (!snapshot.idle && !snapshot.excluded) this.startStreak(snapshot.appId);
+      this.streakMs = 0;
       return;
     }
 
@@ -47,9 +47,8 @@ export class ActivityAggregator {
     const delta = Math.min(rawDelta, MAX_CREDITED_INTERVAL_MS);
 
     if (rawDelta > MAX_SAMPLE_GAP_MS) {
-      this.finishStreak();
+      this.streakMs = 0;
       this.pending = [];
-      if (!snapshot.idle && !snapshot.excluded) this.startStreak(snapshot.appId);
       this.previous = { ...snapshot };
       return;
     }
@@ -89,15 +88,13 @@ export class ActivityAggregator {
       }
     }
 
-    if (appChanged || becameIdle || woke) {
-      this.finishStreak();
-      if (!currentInactive) this.startStreak(snapshot.appId);
-    }
+    // A new app, going idle or coming back each start a fresh uninterrupted stretch.
+    if (appChanged || becameIdle || woke) this.streakMs = 0;
     this.previous = { ...snapshot };
   }
 
   resetContinuity(): void {
-    this.finishStreak();
+    this.streakMs = 0;
     this.pending = [];
     this.previous = undefined;
   }
@@ -152,15 +149,6 @@ export class ActivityAggregator {
     if (completed.size) this.pending = this.pending.filter((_, index) => !completed.has(index));
   }
 
-  private startStreak(appId: string): void {
-    void appId;
-    this.streakMs = 0;
-  }
-
-  private finishStreak(): void {
-    this.streakMs = 0;
-  }
-
   private getDay(key: string): DayAggregate {
     return this.history[key] ?? (this.history[key] = emptyDay());
   }
@@ -179,8 +167,9 @@ export function pruneHistory(history: History, now: number, retentionDays = RETE
 }
 
 export function combineDays(days: DayAggregate[]): DayAggregate {
-  const result = emptyDay();
+  const result: DayAggregate = { ...emptyDay(), spanDays: 0 };
   for (const day of days) {
+    result.spanDays! += Math.max(1, day.spanDays ?? 1);
     result.appChanges += day.appChanges;
     for (const [key, count] of Object.entries(day.transitions ?? {})) {
       result.transitions![key] = (result.transitions![key] ?? 0) + count;
@@ -233,12 +222,17 @@ export function removeAppFromHistory(history: History, executableId: string, con
 /** One day can never hold more active app time than a day has: two apps cannot both claim the same minute. */
 export const MAX_DAY_ACTIVE_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Totals for a day or for several combined days.
+ *
+ * The wall-clock cap scales with the number of days the aggregate covers: a week can hold up to
+ * 7 × 24 hours, not 24. The top app's share is measured against the uncapped sum so it can never
+ * read above 100%.
+ */
 export function recapStats(day: DayAggregate): RecapStats {
   const apps = Object.values(day.apps);
-  const totalActiveMs = Math.min(
-    apps.reduce((sum, app) => sum + app.activeMs, 0),
-    MAX_DAY_ACTIVE_MS
-  );
+  const summedMs = apps.reduce((sum, app) => sum + app.activeMs, 0);
+  const totalActiveMs = Math.min(summedMs, MAX_DAY_ACTIVE_MS * Math.max(1, day.spanDays ?? 1));
   const top = [...apps].sort((a, b) => b.activeMs - a.activeMs)[0];
   const completedInterruptions = apps.reduce((sum, app) => sum + app.interruptionsCompleted, 0);
   const returnTimeTotalMs = apps.reduce((sum, app) => sum + app.returnTimeTotalMs, 0);
@@ -246,7 +240,7 @@ export function recapStats(day: DayAggregate): RecapStats {
     totalActiveMs,
     appChanges: day.appChanges,
     longestStreakMs: apps.reduce((max, app) => Math.max(max, app.longestStreakMs), 0),
-    topAppShare: totalActiveMs && top ? top.activeMs / totalActiveMs : 0,
+    topAppShare: summedMs > 0 && top ? Math.min(1, top.activeMs / summedMs) : 0,
     topAppLabel: top?.label ?? "No app yet",
     uniqueApps: apps.filter((app) => app.activeMs > 0).length,
     completedInterruptions,

@@ -1,4 +1,17 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeImage, powerMonitor, Tray, Menu } from "electron";
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  ClipboardItem,
+  dialog,
+  ipcMain,
+  nativeImage,
+  nativeTheme,
+  powerMonitor,
+  screen,
+  Tray,
+  Menu
+} from "electron";
 import { spawn, type ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 import fs from "node:fs";
@@ -7,15 +20,18 @@ import { ActivityAggregator, combineDays, emptyDay, recapStats, removeAppFromHis
 import { comparePeriods, type PeriodComparison } from "../shared/comparison";
 import { chooseArchetype } from "../shared/archetypes";
 import { APP_ID, APP_NAME, IDLE_THRESHOLD_SECONDS, SAMPLE_INTERVAL_MS, type CardFormat, type RecapPeriod } from "../shared/constants";
-import { dayKeysEndingAt, localDateKey, monthKeys, previousDayKeys, yearKeysToDate } from "../shared/dates";
-import type { AppState, DayAggregate, ShareOutcome, ShareTarget } from "../shared/model";
-import { renderCard, isCardFormat } from "./card";
+import { localDateKey } from "../shared/dates";
+import type { AppState, DayAggregate, I18nPayload, ShareOutcome, ShareTarget, ToggleSetting } from "../shared/model";
+import { languageInfo, pickLocale, type Translator } from "../shared/i18n";
+import { periodKeys, previousPeriodKeys } from "../shared/periods";
+import { renderCard, isCardFormat, localizeArchetype } from "./card";
+import { availableLocales, englishTranslator, loadMessages, translatorFor } from "./locales";
 import { historyToCsv } from "./csv";
 import { isTrustedSenderUrl } from "./ipc-guard";
-import { parseTrackerLine, sanitizeTrackerLabel } from "./tracker-line";
+import { isIdleSample, parseTrackerLine, sanitizeTrackerLabel } from "./tracker-line";
 import { isShareableSavedCard, SavedCardLedger, shareCaption, shareCard } from "./share";
-import { applyStartAtLogin, electronStartupDependencies } from "./startup";
-import { LocalStore } from "./store";
+import { applyStartAtLogin, electronStartupDependencies, launchedHidden, readStartAtLogin } from "./startup";
+import { isThemeChoice, LocalStore } from "./store";
 
 let mainWindow: BrowserWindow | undefined;
 let tray: Tray | undefined;
@@ -24,8 +40,12 @@ let aggregator: ActivityAggregator;
 let tracking = false;
 let quitting = false;
 let lastSaveAt = 0;
-let lastUiUpdateAt = 0;
 let warning = "";
+let warningTimer: NodeJS.Timeout | undefined;
+let screenLocked = false;
+const startHidden = launchedHidden(process.argv);
+/** The interface language; English until settings are loaded. */
+let tr: Translator = englishTranslator();
 const isWindows = process.platform === "win32";
 const appDataRoot = process.env.LOCALAPPDATA
   ? path.join(process.env.LOCALAPPDATA, APP_NAME)
@@ -40,25 +60,92 @@ if (isWindows) {
   app.setAppUserModelId(APP_ID);
 }
 
-function keysForPeriod(period: RecapPeriod, now = Date.now()): string[] {
-  if (period === "day") return [localDateKey(now)];
-  if (period === "week") return dayKeysEndingAt(now, 7);
-  if (period === "month") return monthKeys(now);
-  return yearKeysToDate(now);
+// One process owns the history file. A second launch (the login item plus a click on the Start
+// menu, say) hands over to the first and exits, so two processes never overwrite each other.
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) app.quit();
+app.on("second-instance", () => showMainWindow());
+
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
-function aggregateForPeriod(period: RecapPeriod): DayAggregate {
-  return combineDays(keysForPeriod(period).map((key) => store.history[key] ?? emptyDay()));
+function aggregateForPeriod(period: RecapPeriod, now = Date.now()): DayAggregate {
+  return combineDays(periodKeys(period, now).map((key) => store.history[key] ?? emptyDay()));
 }
 
-/** The same length of time immediately before the current period, for the "versus" line. */
+/** The matching earlier days for the "versus" line (see previousPeriodKeys). */
 function previousAggregateForPeriod(period: RecapPeriod, now = Date.now()): DayAggregate {
-  const count = period === "day" ? 1 : period === "week" ? 7 : period === "month" ? 30 : 365;
-  return combineDays(previousDayKeys(now, count).map((key) => store.history[key] ?? emptyDay()));
+  return combineDays(previousPeriodKeys(period, now).map((key) => store.history[key] ?? emptyDay()));
 }
 
 function comparisonForPeriod(period: RecapPeriod): PeriodComparison {
-  return comparePeriods(recapStats(aggregateForPeriod(period)), recapStats(previousAggregateForPeriod(period)));
+  return comparePeriods(recapStats(aggregateForPeriod(period)), recapStats(previousAggregateForPeriod(period)), tr.t(`compare.${period}`));
+}
+
+/** A message that clears itself: confirmations should not sit on screen for the rest of the day. */
+function notify(message: string, clearAfterMs = 12_000): void {
+  warning = message;
+  if (warningTimer) clearTimeout(warningTimer);
+  warningTimer = setTimeout(() => {
+    if (warning === message) {
+      warning = "";
+      broadcastState();
+    }
+  }, clearAfterMs);
+  warningTimer.unref();
+}
+
+/** The catalog "auto" picks on this PC: the first Windows display language that has one. */
+function autoLocale(): string {
+  let preferred: string[] = [];
+  try {
+    preferred = app.getPreferredSystemLanguages();
+  } catch {
+    /* Older platforms: fall back to the app locale. */
+  }
+  if (!preferred.length) preferred = [app.getLocale()];
+  return pickLocale(preferred, availableLocales());
+}
+
+/** Load the language the settings ask for, falling back to English if its catalog is missing. */
+function applyLanguage(): void {
+  const available = availableLocales();
+  const choice = store.settings.language;
+  const locale = choice !== "auto" && available.includes(choice) ? choice : autoLocale();
+  tr = translatorFor(locale);
+}
+
+function i18nPayload(): I18nPayload {
+  const available = availableLocales();
+  return {
+    choice: store.settings.language,
+    locale: tr.locale,
+    autoLocale: autoLocale(),
+    dir: tr.dir,
+    messages: loadMessages(tr.locale),
+    fallback: loadMessages("en"),
+    languages: available.map((code) => ({ code, nativeName: languageInfo(code).nativeName }))
+  };
+}
+
+/** The current tracking warning or error, in the interface language. */
+function historyWarning(): string {
+  return store.historyReadOnlyReason ? tr.t("warning.historyUnreadable", { path: store.historyPath }) : "";
+}
+
+/** Remember whether the user wants tracking on, for "resume tracking when the app starts". */
+function rememberTrackingIntent(on: boolean): void {
+  if (store.settings.wasTracking === on) return;
+  store.settings.wasTracking = on;
+  try {
+    store.saveSettings();
+  } catch {
+    /* The intent is a convenience; failing to save it must not stop tracking. */
+  }
 }
 
 function currentState(): AppState {
@@ -77,6 +164,11 @@ function currentState(): AppState {
   return {
     tracking,
     startAtLogin: store.settings.startAtLogin,
+    resumeTracking: store.settings.resumeTracking,
+    countFullscreen: store.settings.countFullscreen,
+    theme: store.settings.theme,
+    language: store.settings.language,
+    locale: tr.locale,
     excludedApps: { ...store.settings.excludedApps },
     hiddenApps: { ...store.settings.hiddenApps },
     today: aggregates.day,
@@ -87,17 +179,20 @@ function currentState(): AppState {
     weekStats: stats.week,
     monthStats: stats.month,
     yearStats: stats.year,
-    todayArchetype: chooseArchetype(stats.day),
-    weekArchetype: chooseArchetype(stats.week),
-    monthArchetype: chooseArchetype(stats.month),
-    yearArchetype: chooseArchetype(stats.year),
-    warning: warning || store.historyReadOnlyReason
+    todayArchetype: localizeArchetype(chooseArchetype(stats.day), tr),
+    weekArchetype: localizeArchetype(chooseArchetype(stats.week), tr),
+    monthArchetype: localizeArchetype(chooseArchetype(stats.month), tr),
+    yearArchetype: localizeArchetype(chooseArchetype(stats.year), tr),
+    warning: warning || historyWarning()
   };
 }
 
 function broadcastState(): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("state:changed", currentState());
-  if (tray && !tray.isDestroyed()) tray.setToolTip(`${APP_NAME}${tracking ? " · tracking" : " · paused"}`);
+  if (tray && !tray.isDestroyed()) {
+    tray.setToolTip(tr.t(tracking ? "tray.tooltipOn" : "tray.tooltipPaused"));
+    updateTrayMenu();
+  }
 }
 
 function saveHistory(): void {
@@ -111,11 +206,11 @@ function saveHistory(): void {
 }
 
 function startTracker(): void {
-  if (!isWindows) throw new Error("PC Wrapped currently supports Windows only.");
-  if (store.historyReadOnlyReason) throw new Error(store.historyReadOnlyReason);
+  if (!isWindows) throw new Error(tr.t("warning.windowsOnly"));
+  if (store.historyReadOnlyReason) throw new Error(historyWarning());
   if (tracker) return;
   const script = app.isPackaged ? path.join(process.resourcesPath, "tracker.ps1") : path.join(app.getAppPath(), "scripts", "tracker.ps1");
-  if (!fs.existsSync(script)) throw new Error(`The Windows activity adapter is missing: ${script}`);
+  if (!fs.existsSync(script)) throw new Error(tr.t("warning.adapterMissing", { path: script }));
   // No -ExecutionPolicy Bypass: the script is ours, and that flag is the exact pattern every
   // antivirus (Bitdefender included) flags as "malicious command line". It buys nothing here.
   const child = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", script], {
@@ -136,7 +231,7 @@ function startTracker(): void {
     /* PowerShell errors are not retained as activity data. */
   });
   child.once("error", (error) => {
-    warning = `Activity tracking could not start: ${error.message}`;
+    warning = tr.t("warning.cannotStart", { error: error.message });
     tracking = false;
     if (tracker === child) tracker = undefined;
     aggregator.resetContinuity();
@@ -148,7 +243,7 @@ function startTracker(): void {
       tracking = false;
       aggregator.resetContinuity();
       saveHistory();
-      warning = `Activity tracking stopped unexpectedly${code === null ? "." : ` (exit ${code}).`}`;
+      warning = code === null ? tr.t("warning.stopped") : `${tr.t("warning.stopped")} (exit ${code})`;
       broadcastState();
     }
   });
@@ -160,16 +255,25 @@ function startTracker(): void {
 function consumeTrackerLine(line: string): void {
   if (!line || !tracking) return;
   const now = Date.now();
-  const snapshot = parseTrackerLine(line, now, powerMonitor.getSystemIdleTime() >= IDLE_THRESHOLD_SECONDS, (appId) =>
-    Object.hasOwn(store.settings.excludedApps, appId)
+  const idleSeconds = powerMonitor.getSystemIdleTime();
+  const snapshot = parseTrackerLine(
+    line,
+    now,
+    (appId, fullscreen) =>
+      isIdleSample({
+        idleSeconds,
+        thresholdSeconds: IDLE_THRESHOLD_SECONDS,
+        locked: screenLocked,
+        countFullscreen: store.settings.countFullscreen,
+        fullscreen,
+        appId
+      }),
+    (appId) => Object.hasOwn(store.settings.excludedApps, appId)
   );
   if (!snapshot) return;
   aggregator.ingest(snapshot);
   if (now - lastSaveAt >= 15_000) saveHistory();
-  if (now - lastUiUpdateAt >= 4_000) {
-    lastUiUpdateAt = now;
-    broadcastState();
-  }
+  // The UI is refreshed by broadcastTimer below; one timer, not one per line.
 }
 
 function stopTracker(): void {
@@ -194,13 +298,15 @@ function createWindow(): void {
   const windowIcon = app.isPackaged
     ? path.join(process.resourcesPath, "pc-wrapped.ico")
     : path.join(app.getAppPath(), "assets", "pc-wrapped.ico");
+  // Wide rather than tall, so the settings sit in two columns; never larger than the screen's work area.
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
   mainWindow = new BrowserWindow({
-    width: 1120,
-    height: 790,
-    minWidth: 800,
+    width: Math.min(1400, workArea.width - 40),
+    height: Math.min(860, workArea.height - 40),
+    minWidth: 900,
     minHeight: 650,
     show: false,
-    backgroundColor: "#261e1e",
+    backgroundColor: windowBackground(),
     title: APP_NAME,
     icon: windowIcon,
     autoHideMenuBar: true,
@@ -238,7 +344,8 @@ function createWindow(): void {
   });
   void mainWindow.loadFile(path.join(app.getAppPath(), "dist", "src", "renderer", "index.html"));
   mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
+    // A login start stays in the tray; the user opens the window when they want it.
+    if (!startHidden) mainWindow?.show();
     broadcastState();
   });
   mainWindow.on("close", (event) => {
@@ -255,26 +362,25 @@ function createTray(): void {
     : path.join(app.getAppPath(), "assets", "pc-wrapped-tray.png");
   const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon);
-  tray.setToolTip(`${APP_NAME} · paused`);
+  tray.setToolTip(tr.t("tray.tooltipPaused"));
+  updateTrayMenu();
+  tray.on("double-click", () => showMainWindow());
+}
+
+/** The tray menu shows one tracking item that matches the current state. */
+function updateTrayMenu(): void {
+  if (!tray || tray.isDestroyed()) return;
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Show PC Wrapped", click: () => mainWindow?.show() },
+      { label: tr.t("tray.show"), click: () => showMainWindow() },
       { type: "separator" },
       {
-        label: "Start tracking",
-        click: () => {
-          try {
-            startTracker();
-          } catch (e) {
-            warning = String(e);
-            broadcastState();
-          }
-        }
+        label: tr.t(tracking ? "button.pauseTracking" : "button.startTracking"),
+        click: () => setTrackingFromUser(!tracking)
       },
-      { label: "Pause tracking", click: () => stopTracker() },
       { type: "separator" },
       {
-        label: "Quit",
+        label: tr.t("tray.quit"),
         click: () => {
           quitting = true;
           stopTracker();
@@ -283,17 +389,28 @@ function createTray(): void {
       }
     ])
   );
-  tray.on("double-click", () => mainWindow?.show());
+}
+
+/** Start or pause because the user asked to (window or tray), and remember that choice. */
+function setTrackingFromUser(enabled: boolean): void {
+  try {
+    if (enabled) startTracker();
+    else stopTracker();
+    rememberTrackingIntent(enabled);
+  } catch (error) {
+    warning = error instanceof Error ? error.message : String(error);
+    broadcastState();
+  }
 }
 
 async function askStartupPreferenceOnce(): Promise<void> {
-  if (store.settings.startupPrompted) return;
+  if (store.settings.startupPrompted || startHidden) return;
   const response = await dialog.showMessageBox(mainWindow!, {
     type: "question",
-    title: "Start PC Wrapped with Windows?",
-    message: "Would you like PC Wrapped to open when you sign in? This does not start activity tracking.",
-    detail: "Startup is off by default. You can change this later in Settings.",
-    buttons: ["Keep off", "Enable at login"],
+    title: tr.t("dialog.startupTitle"),
+    message: tr.t("dialog.startupMessage"),
+    detail: tr.t("dialog.startupDetail"),
+    buttons: [tr.t("dialog.startupKeepOff"), tr.t("dialog.startupEnable")],
     defaultId: 0,
     cancelId: 0,
     noLink: true
@@ -311,22 +428,47 @@ async function previewCard(format: CardFormat, period: RecapPeriod): Promise<str
     format,
     period,
     new Set(Object.keys(store.settings.hiddenApps)),
-    comparisonForPeriod(period)
+    comparisonForPeriod(period),
+    tr
   );
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
 
 handle("state:get", () => currentState());
-handle("tracking:set", (event, enabled: boolean) => {
-  try {
-    if (enabled) startTracker();
-    else stopTracker();
-  } catch (error) {
-    warning = error instanceof Error ? error.message : String(error);
-  }
+handle("tracking:set", (event, enabled: unknown) => {
+  if (typeof enabled !== "boolean") throw new Error("Invalid tracking setting.");
+  setTrackingFromUser(enabled);
   return currentState();
 });
-handle("settings:startup", async (event, enabled: boolean) => {
+handle("settings:toggle", (event, setting: unknown, enabled: unknown) => {
+  if (!isToggleSetting(setting) || typeof enabled !== "boolean") throw new Error("Invalid setting.");
+  store.settings[setting] = enabled;
+  if (setting === "resumeTracking") store.settings.wasTracking = tracking;
+  store.saveSettings();
+  broadcastState();
+  return currentState();
+});
+handle("i18n:get", () => i18nPayload());
+handle("settings:language", (event, choice: unknown) => {
+  if (typeof choice !== "string" || (choice !== "auto" && !availableLocales().includes(choice))) throw new Error("Invalid language.");
+  store.settings.language = choice;
+  store.saveSettings();
+  applyLanguage();
+  const payload = i18nPayload();
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("i18n:changed", payload);
+  broadcastState();
+  return payload;
+});
+handle("settings:theme", (event, theme: unknown) => {
+  if (!isThemeChoice(theme)) throw new Error("Invalid theme.");
+  store.settings.theme = theme;
+  store.saveSettings();
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setBackgroundColor(windowBackground());
+  broadcastState();
+  return currentState();
+});
+handle("settings:startup", async (event, enabled: unknown) => {
+  if (typeof enabled !== "boolean") throw new Error("Invalid startup setting.");
   store.settings.startAtLogin = enabled;
   store.settings.startupPrompted = true;
   // A Store build cannot use a plain login item; the startup helper picks the right mechanism and
@@ -358,15 +500,14 @@ handle("settings:hidden-app", (event, executableId: unknown, label: unknown, hid
 });
 handle("history:remove-app", async (event, executableId: unknown) => {
   const id = normalizeExecutableId(executableId);
-  if (!id || !Object.hasOwn(store.settings.excludedApps, id)) throw new Error("Exclude this app before removing its past data.");
+  if (!id || !Object.hasOwn(store.settings.excludedApps, id)) throw new Error(tr.t("error.excludeFirst"));
   const label = store.settings.excludedApps[id];
   const response = await dialog.showMessageBox(mainWindow!, {
     type: "warning",
-    title: "Also remove this app from past data?",
-    message: `Permanently remove ${label} from saved daily summaries?`,
-    detail:
-      "This is separate from excluding future tracking and cannot be undone. Older summaries do not identify which app changes involved this app, so those ambiguous change counts will also be cleared.",
-    buttons: ["Cancel", "Remove past data"],
+    title: tr.t("dialog.removeTitle"),
+    message: tr.t("dialog.removeMessage", { app: label }),
+    detail: tr.t("dialog.removeDetail"),
+    buttons: [tr.t("dialog.cancel"), tr.t("dialog.removeConfirm")],
     defaultId: 0,
     cancelId: 0,
     noLink: true
@@ -375,26 +516,27 @@ handle("history:remove-app", async (event, executableId: unknown) => {
   aggregator.resetContinuity();
   const result = removeAppFromHistory(store.history, id, true);
   store.saveHistory();
-  warning = `Past summaries for ${label} were removed.`;
+  notify(tr.t("notice.pastRemoved", { app: label }));
   broadcastState();
   return result;
 });
 handle("history:delete", async () => {
   const response = await dialog.showMessageBox(mainWindow!, {
     type: "warning",
-    title: "Delete all history?",
-    message: "This permanently deletes all locally saved daily summaries.",
-    detail: "Tracking will pause. This cannot be undone.",
-    buttons: ["Cancel", "Delete all history"],
+    title: tr.t("dialog.deleteTitle"),
+    message: tr.t("dialog.deleteMessage"),
+    detail: tr.t("dialog.deleteDetail"),
+    buttons: [tr.t("dialog.cancel"), tr.t("settings.delete")],
     defaultId: 0,
     cancelId: 0,
     noLink: true
   });
   if (response.response !== 1) return false;
   stopTracker();
+  rememberTrackingIntent(false);
   store.deleteAllHistory();
   aggregator = new ActivityAggregator(store.history);
-  warning = "History deleted. Tracking is paused.";
+  notify(tr.t("notice.historyDeleted"));
   broadcastState();
   return true;
 });
@@ -403,12 +545,12 @@ handle("history:export-csv", async () => {
   if (!days) return null;
   const stamp = localDateKey(Date.now());
   const result = await dialog.showSaveDialog(mainWindow!, {
-    title: "Export history as CSV",
+    title: tr.t("dialog.csvTitle"),
     defaultPath: `pc-wrapped-history-${stamp}.csv`,
-    filters: [{ name: "CSV file", extensions: ["csv"] }]
+    filters: [{ name: tr.t("dialog.csvFilter"), extensions: ["csv"] }]
   });
   if (result.canceled || !result.filePath) return null;
-  fs.writeFileSync(result.filePath, historyToCsv(store.history), "utf8");
+  writeUserFile(result.filePath, historyToCsv(store.history), "error.csvSave");
   return result.filePath;
 });
 
@@ -433,15 +575,16 @@ handle("card:save", async (event, format: CardFormat, period: RecapPeriod) => {
     format,
     period,
     new Set(Object.keys(store.settings.hiddenApps)),
-    comparisonForPeriod(period)
+    comparisonForPeriod(period),
+    tr
   );
   const result = await dialog.showSaveDialog(mainWindow!, {
-    title: "Save recap card",
+    title: tr.t("dialog.cardTitle"),
     defaultPath: `pc-wrapped-${period}-${format}.png`,
-    filters: [{ name: "PNG image", extensions: ["png"] }]
+    filters: [{ name: tr.t("dialog.cardFilter"), extensions: ["png"] }]
   });
   if (result.canceled || !result.filePath) return null;
-  fs.writeFileSync(result.filePath, buffer);
+  writeUserFile(result.filePath, buffer, "error.cardSave");
   savedCards.remember(result.filePath);
   return result.filePath;
 });
@@ -450,39 +593,75 @@ handle("card:share", async (event, target: unknown, format: CardFormat, period: 
   if (!isShareTarget(target) || !isCardFormat(format) || !isPeriod(period)) throw new Error("Unsupported share option.");
   const aggregate = aggregateForPeriod(period);
   const stats = recapStats(aggregate);
-  if (stats.totalActiveMs <= 0) return { opened: false, message: "Track for a while to create a card first." };
+  if (stats.totalActiveMs <= 0) return { opened: false, message: tr.t("share.trackFirst") };
   // Only a PNG this app saved a moment ago is ever handed out.
   const filePath = isShareableSavedCard(savedCards, savedPath) ? savedPath : "";
   return shareCard({
     target,
     filePath,
-    caption: shareCaption(period, stats.totalActiveMs, chooseArchetype(stats).name),
-    copyImage: (source) => {
+    caption: shareCaption(period, stats.totalActiveMs, localizeArchetype(chooseArchetype(stats), tr).name, tr),
+    translator: tr,
+    copyImage: async (source) => {
       const image = nativeImage.createFromPath(source);
-      if (image.isEmpty()) throw new Error("The saved card could not be read for the clipboard.");
-      clipboard.writeImage(image);
+      if (image.isEmpty()) throw new Error(tr.t("share.clipboardRead"));
+      // Electron 44+ clipboard: W3C-style items keyed by MIME type, and the write is asynchronous.
+      await clipboard.write([new ClipboardItem({ "image/png": new Blob([new Uint8Array(image.toPNG())], { type: "image/png" }) })]);
     }
   });
 });
 
 void app.whenReady().then(async () => {
+  if (!hasInstanceLock) return;
   if (!isWindows) {
-    await dialog.showMessageBox({ type: "info", title: APP_NAME, message: "This prototype currently runs on Windows." });
+    await dialog.showMessageBox({ type: "info", title: APP_NAME, message: tr.t("warning.windowsOnly") });
     app.quit();
     return;
   }
   Menu.setApplicationMenu(null);
   store.load();
+  applyLanguage();
   aggregator = new ActivityAggregator(store.history);
+  // Nothing counts while the session is locked, even a full-screen app behind the lock screen.
+  powerMonitor.on("lock-screen", () => {
+    screenLocked = true;
+  });
+  powerMonitor.on("unlock-screen", () => {
+    screenLocked = false;
+  });
+  powerMonitor.on("suspend", () => {
+    aggregator.resetContinuity();
+    saveHistory();
+  });
+  // The stored setting follows what Windows reports, so a login item removed in Task Manager or a
+  // stale one left by another build does not leave the toggle lying.
+  if (!process.windowsStore) {
+    try {
+      const actual = await readStartAtLogin(electronStartupDependencies());
+      if (actual !== store.settings.startAtLogin) {
+        store.settings.startAtLogin = actual;
+        store.saveSettings();
+      }
+    } catch {
+      /* Keep the stored value. */
+    }
+  }
   createWindow();
+  const windowReady = new Promise<void>((resolve) => mainWindow?.once("ready-to-show", () => resolve()));
   createTray();
-  await new Promise<void>((resolve) => mainWindow?.once("ready-to-show", () => resolve()));
+  if (store.settings.resumeTracking && store.settings.wasTracking && !store.historyReadOnlyReason) {
+    try {
+      startTracker();
+    } catch (error) {
+      warning = error instanceof Error ? error.message : String(error);
+    }
+  }
+  await windowReady;
   await askStartupPreferenceOnce();
-  if (store.historyReadOnlyReason) warning = store.historyReadOnlyReason;
+  if (store.historyReadOnlyReason) warning = historyWarning();
 });
 
 app.on("activate", () => {
-  if (mainWindow) mainWindow.show();
+  if (mainWindow) showMainWindow();
   else createWindow();
 });
 app.on("before-quit", () => {
@@ -495,6 +674,34 @@ const broadcastTimer = setInterval(() => {
   if (tracking) broadcastState();
 }, SAMPLE_INTERVAL_MS * 2);
 broadcastTimer.unref();
+
+/** The colour shown before the page paints, matching the chosen theme so there is no flash. */
+function windowBackground(): string {
+  const dark = store.settings.theme === "dark" || (store.settings.theme === "system" && nativeTheme.shouldUseDarkColors);
+  return dark ? "#0a1628" : "#d6f5f2";
+}
+
+function isToggleSetting(value: unknown): value is ToggleSetting {
+  return value === "resumeTracking" || value === "countFullscreen";
+}
+
+/** Write a file the user chose in a save dialog, with a message they can act on if it fails. */
+function writeUserFile(filePath: string, contents: string | Buffer, messageKey: "error.cardSave" | "error.csvSave"): void {
+  try {
+    fs.writeFileSync(filePath, contents, typeof contents === "string" ? "utf8" : undefined);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    const reason =
+      code === "EACCES" || code === "EPERM"
+        ? "reason.access"
+        : code === "EBUSY"
+          ? "reason.busy"
+          : code === "ENOSPC"
+            ? "reason.full"
+            : "reason.other";
+    throw new Error(tr.t(messageKey, { reason: tr.t(reason) }));
+  }
+}
 
 function isPeriod(value: unknown): value is RecapPeriod {
   return value === "day" || value === "week" || value === "month" || value === "year";

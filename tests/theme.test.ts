@@ -41,3 +41,22 @@ test("selected recap period remains readable and keyboard focus is visible", () 
   assert.ok(contrastRatio(colorFrom(selected, "color"), colorFrom(selected, "background")) >= 4.5);
   assert.match(lastRule(".period-button:focus-visible"), /outline:\s*2px solid var\(--mint\)/);
 });
+
+test("the dark blue option keeps text readable on its surfaces", () => {
+  const dark = css.slice(css.indexOf(':root[data-theme="dark"] {'));
+  const variable = (name: string): string => {
+    const match = dark.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(match, `missing dark --${name}`);
+    return match[1];
+  };
+  for (const [text, surface] of [
+    ["ink", "paper"],
+    ["muted", "paper"],
+    ["muted", "deep"],
+    ["gold-text", "paper"],
+    ["teal-text", "paper"],
+    ["gold-ink", "gold"]
+  ]) {
+    assert.ok(contrastRatio(variable(text), variable(surface)) >= 4.5, `${text} on ${surface}`);
+  }
+});
