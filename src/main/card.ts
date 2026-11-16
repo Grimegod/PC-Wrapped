@@ -274,31 +274,7 @@ function metric(ctx: SKRSContext2D, x: number, y: number, maxWidth: number, labe
 }
 
 /** Story-card version of THE CAST: one horizontal band of top apps, each in its own colour. */
-function castStrip(ctx: SKRSContext2D, day: DayAggregate, hiddenAppIds: ReadonlySet<string>, x: number, y: number, width: number): void {
-  const cast = topAppRows(day, hiddenAppIds, 3);
-  if (!cast.length) return;
-  const gap = 18;
-  const column = (width - gap * (cast.length - 1)) / cast.length;
-  cast.forEach((app, index) => {
-    const columnX = x + index * (column + gap);
-    const colour = BAR_COLORS[index % BAR_COLORS.length];
-    ctx.fillStyle = TILE_TINTS[index % TILE_TINTS.length][0];
-    roundRect(ctx, columnX, y, column, 64, 18);
-    ctx.fill();
-    ctx.fillStyle = colour;
-    roundRect(ctx, columnX, y, column, 8, 4);
-    ctx.fill();
-    ctx.fillStyle = inkSoft;
-    drawCardText(ctx, fitCardText(ctx, app.label, column - 32, 19), columnX + 16, y + 36, 19);
-    ctx.fillStyle = ink;
-    const percent = `${Math.round(app.share * 100)}%`;
-    drawCardText(ctx, percent, columnX + column - 16 - measureCardText(ctx, percent, 21, 700), y + 36, 21, 700);
-  });
-}
-
-/** Bright bar colours, cycled per cast member so the chart looks like a celebration, not a progress report. */
 const BAR_COLORS = [coral, sky, mint, grape, tangerine];
-
 function castBar(
   ctx: SKRSContext2D,
   x: number,
