@@ -6,6 +6,10 @@ PC Wrapped is a Windows app for a friendly daily or weekly recap of your active 
 
 **[Visit the presentation site](https://grimegod.github.io/PC-Wrapped/)** · **[Microsoft Store listing](https://apps.microsoft.com/detail/9PLJFV595G0X)** · **[GitHub releases](https://github.com/Grimegod/PC-Wrapped/releases/latest)**
 
+[![Watch the PC Wrapped video (2:24)](https://img.youtube.com/vi/-jxWrJk0mPY/maxresdefault.jpg)](https://www.youtube.com/watch?v=-jxWrJk0mPY)
+
+**[Watch the 2-minute video tour on YouTube](https://www.youtube.com/watch?v=-jxWrJk0mPY)**
+
 ## What it does
 
 - Tracks which app is in the foreground and when the PC is idle. Tracking stays paused until you start it.

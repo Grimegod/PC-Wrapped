@@ -321,6 +321,84 @@ nav a:hover {
   font-size: 17.5px;
 }
 
+/* Video tour: a plain link to YouTube, so the page itself loads nothing from a third party */
+.video-section {
+  padding-top: 0;
+}
+.video-link {
+  position: relative;
+  display: block;
+  max-width: 960px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+.video-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.4s ease;
+}
+.video-link:hover img,
+.video-link:focus-visible img {
+  transform: scale(1.02);
+}
+.video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 88px;
+  height: 88px;
+  margin: -44px 0 0 -44px;
+  border-radius: 50%;
+  background: #0f3b3ae0;
+  box-shadow: 0 10px 30px #00000059;
+  transition: transform 0.2s ease;
+}
+.video-play::after {
+  content: "";
+  position: absolute;
+  left: 36px;
+  top: 27px;
+  border-style: solid;
+  border-width: 17px 0 17px 28px;
+  border-color: transparent transparent transparent #ffffff;
+}
+.video-link:hover .video-play,
+.video-link:focus-visible .video-play {
+  transform: scale(1.08);
+}
+.video-caption {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #0f3b3ae0;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .video-link img,
+  .video-play {
+    transition: none;
+  }
+}
+@media (max-width: 560px) {
+  .video-play {
+    width: 64px;
+    height: 64px;
+    margin: -32px 0 0 -32px;
+  }
+  .video-play::after {
+    left: 26px;
+    top: 19px;
+    border-width: 13px 0 13px 21px;
+  }
+}
+
 .steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
