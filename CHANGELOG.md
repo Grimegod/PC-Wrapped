@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to PCWrapped. The project follows [Semantic Versioning](https://semver.org/).
+All notable changes to PC Wrapped. The project follows [Semantic Versioning](https://semver.org/).
 
 ## [1.2.0] — 2026-11-16
 
@@ -12,7 +12,7 @@ All notable changes to PCWrapped. The project follows [Semantic Versioning](http
 ### Changed
 
 - The square card shows three apps by name with their share bars, instead of one unlabelled strip.
-- The app is called PCWrapped everywhere: window, tray, installer, login item and copy.
+- The app is called **PC Wrapped** everywhere: window, tray, exe, installer, login item and copy.
 - Soft turquoise and gold interface, replacing the cocoa palette.
 
 ## [1.1.0] — 2026-11-15
@@ -29,7 +29,7 @@ Two more ranges and a way out with your data.
 
 ### Changed
 
-- The app is now called **PCWrapped** everywhere: window title, tray, installer name, login item and copy.
+- The app is now called **PC Wrapped** everywhere: window title, tray, installer name, login item and copy.
 
 ### Fixed
 

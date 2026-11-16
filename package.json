@@ -2,7 +2,7 @@
   "name": "pc-wrapped",
   "version": "1.2.0",
   "private": true,
-  "author": "PCWrapped",
+  "author": "PC Wrapped",
   "description": "A private, local-only activity recap for Windows",
   "main": "dist/src/main/main.js",
   "scripts": {
@@ -38,7 +38,7 @@
   },
   "build": {
     "appId": "com.grimegod.pcwrapped",
-    "productName": "PCWrapped",
+    "productName": "PC Wrapped",
     "asar": true,
     "directories": {
       "output": "release",
@@ -86,7 +86,7 @@
       "identityName": "PaulGrimu.PCWrapped",
       "publisher": "CN=077C1390-8C9F-4DBE-AD6E-C01D348FB24D",
       "publisherDisplayName": "Paul Grimu",
-      "displayName": "PCWrapped",
+      "displayName": "PC Wrapped",
       "backgroundColor": "#fff7ef",
       "showNameOnTiles": true,
       "createMsixupload": true,

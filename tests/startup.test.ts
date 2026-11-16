@@ -21,7 +21,7 @@ test("start-at-login is off by default and turning it on is reported back", asyn
   assert.equal(await readStartAtLogin(deps), false);
   assert.equal(await applyStartAtLogin(deps, true), true);
   assert.equal(await readStartAtLogin(deps), true);
-  assert.deepEqual(deps.calls, [{ openAtLogin: true, name: "PCWrapped" }]);
+  assert.deepEqual(deps.calls, [{ openAtLogin: true, name: "PC Wrapped" }]);
 });
 
 test("turning start-at-login off is a real off, not an ignored call", async () => {

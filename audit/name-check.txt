@@ -1,0 +1,6 @@
+processes: 5
+  PC Wrapped | hwnd=0 | title=''
+  PC Wrapped | hwnd=3015666 | title='PC Wrapped'
+  PC Wrapped | hwnd=0 | title=''
+  PC Wrapped | hwnd=0 | title=''
+  PC-Wrapped-1.2.0-portable-x64 | hwnd=0 | title=''
